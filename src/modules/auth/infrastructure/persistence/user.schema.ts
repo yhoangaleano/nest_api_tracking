@@ -6,7 +6,7 @@ import { USER_ROLE_ENUMERATION } from '../../domain/user-role.enum';
 
 @Schema({ collection: 'users', timestamps: true })
 export class UserDocument extends Document {
-  @Prop({ required: true, unique: true, lowercase: true, index: true })
+  @Prop({ required: true, unique: true, lowercase: true })
   email!: string;
 
   @Prop({ required: true })
@@ -25,5 +25,4 @@ export class UserDocument extends Document {
 export const UserSchema = SchemaFactory.createForClass(UserDocument);
 
 // Indexes for optimization
-UserSchema.index({ email: 1 });
 UserSchema.index({ isActive: 1 });

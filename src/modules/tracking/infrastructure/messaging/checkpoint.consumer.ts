@@ -90,7 +90,7 @@ export class CheckpointConsumer implements OnModuleInit {
         );
 
         setTimeout(() => {
-          this.channel.nack(msg, false, true);
+          this.requeueWithIncrementedRetry(msg);
         }, delay);
       } else {
         console.log(
@@ -113,6 +113,20 @@ export class CheckpointConsumer implements OnModuleInit {
       RETRY_DELAYS_MS_CONSTANT.at(-1) ||
       DEFAULT_RETRY_DELAY_MS_CONSTANT
     );
+  }
+
+  private requeueWithIncrementedRetry(msg: ConsumeMessage): void {
+    const retryCount = this.getRetryCount(msg);
+
+    this.channel.sendToQueue(this.queueName, msg.content, {
+      persistent: true,
+      headers: {
+        ...msg.properties.headers,
+        'x-retry-count': retryCount + 1,
+      },
+    });
+
+    this.channel.ack(msg);
   }
 
   private sendToDLQ(msg: ConsumeMessage): void {

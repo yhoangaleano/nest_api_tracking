@@ -23,10 +23,10 @@ class CheckpointDocument {
 
 @Schema({ collection: 'units', timestamps: true })
 export class UnitDocument extends Document {
-  @Prop({ required: true, unique: true, index: true })
+  @Prop({ required: true, unique: true })
   trackingId!: string;
 
-  @Prop({ required: true, enum: UnitState, index: true })
+  @Prop({ required: true, enum: UnitState })
   currentState!: UnitState;
 
   @Prop({ type: [CheckpointDocument], required: true })
@@ -36,5 +36,4 @@ export class UnitDocument extends Document {
 export const UnitSchema = SchemaFactory.createForClass(UnitDocument);
 
 // Composite indexes for optimization
-UnitSchema.index({ trackingId: 1 });
 UnitSchema.index({ currentState: 1, updatedAt: -1 });
