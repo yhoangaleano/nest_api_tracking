@@ -1,0 +1,46 @@
+# Archivo: render.yaml
+# Colócalo en la raíz de tu repositorio
+
+services:
+  # --- 1. El Servicio Web (API / Productor) ---
+  - type: web
+    name: tracking-api
+    env: node
+    # Habilita el auto-despliegue en cada push a 'main'
+    autoDeploy: true
+    # Comandos de construcción
+    buildCommand: npm install && npm run build
+    # Comando para iniciar la API
+    startCommand: npm run start:prod
+    # Ruta para que Render sepa que la API está "viva"
+    healthCheckPath: /api # (Ajusta esto a una ruta pública, ej. /api/docs)
+    envVars:
+      - key: PORT
+        value: 3000 # Render usa 10000 por defecto, pero Nest usa 3000
+      - key: CHECKPOINT_QUEUE_NAME
+        value: checkpoint_events
+      # --- Variables de Entorno Secretas ---
+      # Debes crear estas variables en el Dashboard de Render
+      # (Settings > Environment)
+      - key: DATABASE_URL
+        fromSecret: true # Tomará el valor de la variable secreta 'DATABASE_URL'
+      - key: RABBITMQ_URL
+        fromSecret: true # Tomará el valor de la variable secreta 'RABBITMQ_URL'
+
+  # --- 2. El Worker (Consumidor) ---
+  - type: worker # <-- Tipo de servicio clave: 'worker'
+    name: tracking-worker
+    env: node
+    autoDeploy: true
+    # Render puede reusar el caché de 'npm install' del servicio anterior
+    buildCommand: npm install && npm run build
+    # Comando para iniciar el Worker
+    startCommand: npm run start:worker
+    envVars:
+      # Repetimos las mismas variables de entorno
+      - key: CHECKPOINT_QUEUE_NAME
+        value: checkpoint_events
+      - key: DATABASE_URL
+        fromSecret: true
+      - key: RABBITMQ_URL
+        fromSecret: true
