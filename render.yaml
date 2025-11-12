@@ -23,9 +23,9 @@ services:
       # Debes crear estas variables en el Dashboard de Render
       # (Settings > Environment)
       - key: DATABASE_URL
-        fromSecret: true # Tomará el valor de la variable secreta 'DATABASE_URL'
+        sync: false # Esta variable debe ser configurada en el Dashboard de Render
       - key: RABBITMQ_URL
-        fromSecret: true # Tomará el valor de la variable secreta 'RABBITMQ_URL'
+        sync: false # Esta variable debe ser configurada en el Dashboard de Render
 
   # --- 2. El Worker (Consumidor) ---
   - type: worker # <-- Tipo de servicio clave: 'worker'
@@ -41,6 +41,6 @@ services:
       - key: CHECKPOINT_QUEUE_NAME
         value: checkpoint_events
       - key: DATABASE_URL
-        fromSecret: true
+        sync: false
       - key: RABBITMQ_URL
-        fromSecret: true
+        sync: false
