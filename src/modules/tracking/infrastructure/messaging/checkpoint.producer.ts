@@ -8,6 +8,12 @@ import { Channel } from 'amqplib';
 // Application layer
 import { RegisterCheckpointDto } from '../../application/dtos/register-checkpoint.dto';
 
+// Own code imports
+import {
+  CHECKPOINT_QUEUE_CONFIG_KEY_CONSTANT,
+  DEFAULT_CHECKPOINT_QUEUE_NAME_CONSTANT,
+} from '../../configs/messaging.constants';
+
 // Infrastructure layer
 import { RabbitMQConnectionService } from './rabbitmq-connection.service';
 
@@ -21,8 +27,8 @@ export class CheckpointProducer implements OnModuleInit {
     private readonly rabbitMQConnection: RabbitMQConnectionService,
   ) {
     this.queueName =
-      this.configService.get<string>('queue.checkpointQueueName') ||
-      'checkpoint_events';
+      this.configService.get<string>(CHECKPOINT_QUEUE_CONFIG_KEY_CONSTANT) ||
+      DEFAULT_CHECKPOINT_QUEUE_NAME_CONSTANT;
   }
 
   async onModuleInit(): Promise<void> {

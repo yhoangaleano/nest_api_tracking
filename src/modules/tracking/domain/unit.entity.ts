@@ -1,6 +1,10 @@
 import { Checkpoint } from './checkpoint.entity';
 import { UnitState } from './unit-state.enum';
 import { InvalidStateTransitionError } from './unit.errors';
+import {
+  INITIAL_CHECKPOINT_LOCATION_CONSTANT,
+  INITIAL_CHECKPOINT_MESSAGE_CONSTANT,
+} from '../configs/domain-messages.constants';
 
 export class Unit {
   constructor(
@@ -13,9 +17,9 @@ export class Unit {
   static create(trackingId: string): Unit {
     const initialCheckpoint = Checkpoint.create(
       UnitState.CREATED,
-      'System',
+      INITIAL_CHECKPOINT_LOCATION_CONSTANT,
       new Date(),
-      'Unit registered in the system',
+      INITIAL_CHECKPOINT_MESSAGE_CONSTANT,
     );
 
     return new Unit(null, trackingId, UnitState.CREATED, [initialCheckpoint]);

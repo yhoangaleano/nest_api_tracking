@@ -18,4 +18,9 @@ RUN npm install --only=production
 
 COPY --from=builder /usr/src/app/dist ./dist
 
-CMD ["node", "dist/main.js"]
+# Accept ENTRY_FILE environment variable to choose between API and Worker modes
+# Default: main (API mode with producer and consumer)
+# Options: main.worker (Worker mode - only consumer)
+ENV ENTRY_FILE=main
+
+CMD ["sh", "-c", "node dist/${ENTRY_FILE}.js"]

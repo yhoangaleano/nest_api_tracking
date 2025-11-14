@@ -18,6 +18,16 @@ import {
   MAX_RETRIES_CONSTANT,
   RETRY_DELAYS_MS_CONSTANT,
 } from '../../configs/retry-strategy.constants';
+import {
+  CHECKPOINT_QUEUE_CONFIG_KEY_CONSTANT,
+  DEFAULT_CHECKPOINT_QUEUE_NAME_CONSTANT,
+  DEFAULT_CONSUMER_PREFETCH_COUNT_CONSTANT,
+  DELAY_QUEUE_SUFFIX_CONSTANT,
+  DLQ_SUFFIX_CONSTANT,
+  RABBITMQ_HEADER_FAILED_AT_CONSTANT,
+  RABBITMQ_HEADER_ORIGINAL_QUEUE_CONSTANT,
+  RABBITMQ_HEADER_RETRY_COUNT_CONSTANT,
+} from '../../configs/messaging.constants';
 
 // Infrastructure layer
 import { RabbitMQConnectionService } from './rabbitmq-connection.service';
@@ -33,8 +43,8 @@ export class CheckpointConsumer implements OnModuleInit {
     private readonly registerCheckpointUseCase: RegisterCheckpointUseCase,
   ) {
     this.queueName =
-      this.configService.get<string>('queue.checkpointQueueName') ||
-      'checkpoint_events';
+      this.configService.get<string>(CHECKPOINT_QUEUE_CONFIG_KEY_CONSTANT) ||
+      DEFAULT_CHECKPOINT_QUEUE_NAME_CONSTANT;
   }
 
   async onModuleInit(): Promise<void> {
@@ -42,10 +52,21 @@ export class CheckpointConsumer implements OnModuleInit {
 
     await this.rabbitMQConnection.assertQueue(this.channel, this.queueName);
 
-    const dlqName = `${this.queueName}_dlq`;
+    const dlqName = `${this.queueName}${DLQ_SUFFIX_CONSTANT}`;
     await this.rabbitMQConnection.assertQueue(this.channel, dlqName);
 
-    await this.channel.prefetch(1);
+    const delayQueueName = `${this.queueName}${DELAY_QUEUE_SUFFIX_CONSTANT}`;
+    await this.channel.assertQueue(delayQueueName, {
+      durable: true,
+      deadLetterExchange: '',
+      deadLetterRoutingKey: this.queueName,
+    });
+
+    const prefetchCount =
+      Number(this.configService.get<number>('queue.prefetchCount')) ||
+      DEFAULT_CONSUMER_PREFETCH_COUNT_CONSTANT;
+
+    await this.channel.prefetch(Number(prefetchCount));
 
     await this.channel.consume(
       this.queueName,
@@ -55,7 +76,9 @@ export class CheckpointConsumer implements OnModuleInit {
       { noAck: false },
     );
 
-    console.log(`[Consumer] Listening on queue: ${this.queueName}`);
+    console.log(
+      `[Consumer] Listening on queue: ${this.queueName} (prefetch: ${prefetchCount})`,
+    );
   }
 
   private async handleMessage(msg: ConsumeMessage | null): Promise<void> {
@@ -67,14 +90,8 @@ export class CheckpointConsumer implements OnModuleInit {
       const content = msg.content.toString();
       const checkpoint = JSON.parse(content) as RegisterCheckpointDto;
 
-      console.log(
-        `[Consumer] Processing checkpoint for: ${checkpoint.trackingId}`,
-      );
-
       await this.registerCheckpointUseCase.execute(checkpoint);
-
       this.channel.ack(msg);
-      console.log('[Consumer] Checkpoint processed successfully');
     } catch (error) {
       console.error('[Consumer] Error processing message:', error);
 
@@ -86,16 +103,10 @@ export class CheckpointConsumer implements OnModuleInit {
       ) {
         const delay = this.calculateBackoffDelay(retryCount);
         console.log(
-          `[Consumer] Invalid state transition, retry ${retryCount + 1}/${MAX_RETRIES_CONSTANT} (delay: ${delay}ms)`,
+          `[Consumer] Retry ${retryCount + 1}/${MAX_RETRIES_CONSTANT} with delay ${delay}ms`,
         );
-
-        setTimeout(() => {
-          this.requeueWithIncrementedRetry(msg);
-        }, delay);
+        this.requeueWithIncrementedRetry(msg, delay);
       } else {
-        console.log(
-          '[Consumer] Max retries exceeded or fatal error, sending to DLQ',
-        );
         this.sendToDLQ(msg);
         this.channel.ack(msg);
       }
@@ -104,7 +115,7 @@ export class CheckpointConsumer implements OnModuleInit {
 
   private getRetryCount(msg: ConsumeMessage): number {
     const headers = msg.properties.headers || {};
-    return (headers['x-retry-count'] as number) || 0;
+    return (headers[RABBITMQ_HEADER_RETRY_COUNT_CONSTANT] as number) || 0;
   }
 
   private calculateBackoffDelay(retryCount: number): number {
@@ -115,14 +126,19 @@ export class CheckpointConsumer implements OnModuleInit {
     );
   }
 
-  private requeueWithIncrementedRetry(msg: ConsumeMessage): void {
+  private requeueWithIncrementedRetry(
+    msg: ConsumeMessage,
+    delayMs: number,
+  ): void {
     const retryCount = this.getRetryCount(msg);
+    const delayQueueName = `${this.queueName}${DELAY_QUEUE_SUFFIX_CONSTANT}`;
 
-    this.channel.sendToQueue(this.queueName, msg.content, {
+    this.channel.sendToQueue(delayQueueName, msg.content, {
       persistent: true,
+      expiration: delayMs.toString(),
       headers: {
         ...msg.properties.headers,
-        'x-retry-count': retryCount + 1,
+        [RABBITMQ_HEADER_RETRY_COUNT_CONSTANT]: retryCount + 1,
       },
     });
 
@@ -130,16 +146,16 @@ export class CheckpointConsumer implements OnModuleInit {
   }
 
   private sendToDLQ(msg: ConsumeMessage): void {
-    const dlqName = `${this.queueName}_dlq`;
+    const dlqName = `${this.queueName}${DLQ_SUFFIX_CONSTANT}`;
     const retryCount = this.getRetryCount(msg);
 
     this.channel.sendToQueue(dlqName, msg.content, {
       persistent: true,
       headers: {
         ...msg.properties.headers,
-        'x-retry-count': retryCount + 1,
-        'x-original-queue': this.queueName,
-        'x-failed-at': new Date().toISOString(),
+        [RABBITMQ_HEADER_RETRY_COUNT_CONSTANT]: retryCount + 1,
+        [RABBITMQ_HEADER_ORIGINAL_QUEUE_CONSTANT]: this.queueName,
+        [RABBITMQ_HEADER_FAILED_AT_CONSTANT]: new Date().toISOString(),
       },
     });
   }

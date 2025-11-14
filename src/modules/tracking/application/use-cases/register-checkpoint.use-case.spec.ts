@@ -1,0 +1,363 @@
+import { Test, TestingModule } from '@nestjs/testing';
+
+import { RegisterCheckpointDto } from '../dtos/register-checkpoint.dto';
+import { RegisterCheckpointUseCase } from './register-checkpoint.use-case';
+
+import { Unit } from '../../domain/unit.entity';
+import { UnitState } from '../../domain/unit-state.enum';
+import { InvalidStateTransitionError } from '../../domain/unit.errors';
+import {
+  IUnitRepository,
+  UNIT_REPOSITORY_TOKEN_CONSTANT,
+} from '../../domain/unit.repository';
+
+describe('register checkpoint use case', () => {
+  let useCase: RegisterCheckpointUseCase;
+  let mockRepository: jest.Mocked<IUnitRepository>;
+
+  beforeEach(async () => {
+    mockRepository = {
+      findByTrackingId: jest.fn(),
+      save: jest.fn(),
+      findByState: jest.fn(),
+    } as jest.Mocked<IUnitRepository>;
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        RegisterCheckpointUseCase,
+        {
+          provide: UNIT_REPOSITORY_TOKEN_CONSTANT,
+          useValue: mockRepository,
+        },
+      ],
+    }).compile();
+
+    useCase = module.get<RegisterCheckpointUseCase>(RegisterCheckpointUseCase);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('execute', () => {
+    it('should create new unit when tracking ID does not exist', async () => {
+      const dto: RegisterCheckpointDto = {
+        trackingId: 'T-NEW-12345',
+        status: UnitState.PICKED_UP,
+        location: 'ORIGIN_WAREHOUSE',
+        timestamp: new Date().toISOString(),
+      };
+
+      mockRepository.findByTrackingId.mockResolvedValue(null);
+      mockRepository.save.mockImplementation((unit) => Promise.resolve(unit));
+
+      await useCase.execute(dto);
+
+      expect(mockRepository.findByTrackingId).toHaveBeenCalledWith(
+        dto.trackingId,
+      );
+      expect(mockRepository.save).toHaveBeenCalledTimes(1);
+      const savedUnit = mockRepository.save.mock.calls[0]![0];
+      expect(savedUnit.trackingId).toBe(dto.trackingId);
+      expect(savedUnit.currentState).toBe(UnitState.PICKED_UP);
+    });
+
+    it('should add checkpoint to existing unit', async () => {
+      const trackingId = 'T-ABC-12345';
+      const existingUnit = Unit.create(trackingId);
+
+      const dto: RegisterCheckpointDto = {
+        trackingId,
+        status: UnitState.PICKED_UP,
+        location: 'WAREHOUSE_A',
+        timestamp: new Date().toISOString(),
+      };
+
+      mockRepository.findByTrackingId.mockResolvedValue(existingUnit);
+      mockRepository.save.mockImplementation((unit) => Promise.resolve(unit));
+
+      await useCase.execute(dto);
+
+      expect(mockRepository.findByTrackingId).toHaveBeenCalledWith(trackingId);
+      expect(mockRepository.save).toHaveBeenCalledTimes(1);
+
+      const savedUnit = mockRepository.save.mock.calls[0]![0];
+      expect(savedUnit.currentState).toBe(UnitState.PICKED_UP);
+      expect(savedUnit.checkpoints).toHaveLength(2);
+    });
+
+    it('should update unit through multiple valid transitions', async () => {
+      const trackingId = 'T-ABC-12345';
+      let currentUnit = Unit.create(trackingId);
+
+      mockRepository.findByTrackingId.mockResolvedValue(currentUnit);
+      mockRepository.save.mockImplementation((unit) => {
+        currentUnit = unit;
+        return Promise.resolve(unit);
+      });
+
+      await useCase.execute({
+        trackingId,
+        status: UnitState.PICKED_UP,
+        location: 'WAREHOUSE_A',
+        timestamp: new Date().toISOString(),
+      });
+
+      expect(currentUnit.currentState).toBe(UnitState.PICKED_UP);
+
+      mockRepository.findByTrackingId.mockResolvedValue(currentUnit);
+
+      await useCase.execute({
+        trackingId,
+        status: UnitState.IN_TRANSIT,
+        location: 'TRUCK_A123',
+        timestamp: new Date().toISOString(),
+      });
+
+      expect(currentUnit.currentState).toBe(UnitState.IN_TRANSIT);
+      expect(currentUnit.checkpoints).toHaveLength(3);
+    });
+
+    it('should include notes when provided', async () => {
+      const trackingId = 'T-ABC-12345';
+      const existingUnit = Unit.create(trackingId);
+      const notes = 'Package handled with special care';
+
+      mockRepository.findByTrackingId.mockResolvedValue(existingUnit);
+      mockRepository.save.mockImplementation((unit) => Promise.resolve(unit));
+
+      await useCase.execute({
+        trackingId,
+        status: UnitState.PICKED_UP,
+        location: 'WAREHOUSE_A',
+        timestamp: new Date().toISOString(),
+        notes,
+      });
+
+      const savedUnit = mockRepository.save.mock.calls[0]![0];
+      const addedCheckpoint =
+        savedUnit.checkpoints[savedUnit.checkpoints.length - 1];
+      expect(addedCheckpoint).toBeDefined();
+      expect(addedCheckpoint!.notes).toBe(notes);
+    });
+
+    it('should throw InvalidStateTransitionError for invalid transition', async () => {
+      const trackingId = 'T-ABC-12345';
+      const existingUnit = Unit.create(trackingId);
+
+      mockRepository.findByTrackingId.mockResolvedValue(existingUnit);
+
+      const dto: RegisterCheckpointDto = {
+        trackingId,
+        status: UnitState.DELIVERED,
+        location: 'CUSTOMER_ADDRESS',
+        timestamp: new Date().toISOString(),
+      };
+
+      await expect(useCase.execute(dto)).rejects.toThrow(
+        InvalidStateTransitionError,
+      );
+
+      expect(mockRepository.save).not.toHaveBeenCalled();
+    });
+
+    it('should handle repository findByTrackingId errors', async () => {
+      const dto: RegisterCheckpointDto = {
+        trackingId: 'T-ABC-12345',
+        status: UnitState.PICKED_UP,
+        location: 'WAREHOUSE_A',
+        timestamp: new Date().toISOString(),
+      };
+
+      mockRepository.findByTrackingId.mockRejectedValue(
+        new Error('Database connection failed'),
+      );
+
+      await expect(useCase.execute(dto)).rejects.toThrow(
+        'Database connection failed',
+      );
+
+      expect(mockRepository.save).not.toHaveBeenCalled();
+    });
+
+    it('should handle repository save errors', async () => {
+      const trackingId = 'T-ABC-12345';
+      const existingUnit = Unit.create(trackingId);
+
+      mockRepository.findByTrackingId.mockResolvedValue(existingUnit);
+      mockRepository.save.mockRejectedValue(new Error('Database write failed'));
+
+      const dto: RegisterCheckpointDto = {
+        trackingId,
+        status: UnitState.PICKED_UP,
+        location: 'WAREHOUSE_A',
+        timestamp: new Date().toISOString(),
+      };
+
+      await expect(useCase.execute(dto)).rejects.toThrow(
+        'Database write failed',
+      );
+    });
+
+    it('should parse ISO timestamp string correctly', async () => {
+      const trackingId = 'T-ABC-12345';
+      const existingUnit = Unit.create(trackingId);
+      const isoTimestamp = '2025-01-12T10:30:00.000Z';
+
+      mockRepository.findByTrackingId.mockResolvedValue(existingUnit);
+      mockRepository.save.mockImplementation((unit) => Promise.resolve(unit));
+
+      await useCase.execute({
+        trackingId,
+        status: UnitState.PICKED_UP,
+        location: 'WAREHOUSE_A',
+        timestamp: isoTimestamp,
+      });
+
+      const savedUnit = mockRepository.save.mock.calls[0]![0];
+      const addedCheckpoint =
+        savedUnit.checkpoints[savedUnit.checkpoints.length - 1];
+      expect(addedCheckpoint).toBeDefined();
+      expect(addedCheckpoint!.timestamp).toBeInstanceOf(Date);
+      expect(addedCheckpoint!.timestamp.toISOString()).toBe(isoTimestamp);
+    });
+
+    it('should handle different timestamp formats', async () => {
+      const trackingId = 'T-ABC-12345';
+      let currentUnit = Unit.create(trackingId);
+
+      mockRepository.findByTrackingId.mockImplementation(() =>
+        Promise.resolve(currentUnit),
+      );
+      mockRepository.save.mockImplementation((unit: Unit) => {
+        currentUnit = unit;
+        return Promise.resolve(unit);
+      });
+
+      const timestamps = [
+        '2025-01-12T10:30:00.000Z',
+        '2025-01-12T10:31:00Z',
+        '2025-01-12T10:32:00',
+      ];
+
+      const states = [
+        UnitState.PICKED_UP,
+        UnitState.IN_TRANSIT,
+        UnitState.OUT_FOR_DELIVERY,
+      ];
+
+      for (let i = 0; i < timestamps.length; i++) {
+        await useCase.execute({
+          trackingId,
+          status: states[i]!,
+          location: 'WAREHOUSE_A',
+          timestamp: timestamps[i]!,
+        });
+      }
+
+      expect(mockRepository.save).toHaveBeenCalledTimes(3);
+    });
+
+    it('should handle complete delivery flow', async () => {
+      const trackingId = 'T-FLOW-12345';
+      let currentUnit: Unit | null = null;
+
+      mockRepository.findByTrackingId.mockImplementation(() =>
+        Promise.resolve(currentUnit),
+      );
+      mockRepository.save.mockImplementation((unit: Unit) => {
+        currentUnit = unit;
+        return Promise.resolve(unit);
+      });
+
+      await useCase.execute({
+        trackingId,
+        status: UnitState.PICKED_UP,
+        location: 'WAREHOUSE_A',
+        timestamp: new Date('2025-01-12T09:00:00Z').toISOString(),
+      });
+      expect((currentUnit as unknown as Unit).currentState).toBe(
+        UnitState.PICKED_UP,
+      );
+
+      await useCase.execute({
+        trackingId,
+        status: UnitState.IN_TRANSIT,
+        location: 'TRUCK_A123',
+        timestamp: new Date('2025-01-12T10:00:00Z').toISOString(),
+      });
+      expect((currentUnit as unknown as Unit).currentState).toBe(
+        UnitState.IN_TRANSIT,
+      );
+
+      await useCase.execute({
+        trackingId,
+        status: UnitState.OUT_FOR_DELIVERY,
+        location: 'VAN_B456',
+        timestamp: new Date('2025-01-12T11:00:00Z').toISOString(),
+      });
+      expect((currentUnit as unknown as Unit).currentState).toBe(
+        UnitState.OUT_FOR_DELIVERY,
+      );
+
+      await useCase.execute({
+        trackingId,
+        status: UnitState.DELIVERED,
+        location: 'CUSTOMER_ADDRESS',
+        timestamp: new Date('2025-01-12T12:00:00Z').toISOString(),
+      });
+      expect((currentUnit as unknown as Unit).currentState).toBe(
+        UnitState.DELIVERED,
+      );
+      expect((currentUnit as unknown as Unit).checkpoints).toHaveLength(5);
+    });
+
+    it('should handle failed delivery with return flow', async () => {
+      const trackingId = 'T-RETURN-12345';
+      let currentUnit: Unit | null = null;
+
+      mockRepository.findByTrackingId.mockImplementation(() =>
+        Promise.resolve(currentUnit),
+      );
+      mockRepository.save.mockImplementation((unit: Unit) => {
+        currentUnit = unit;
+        return Promise.resolve(unit);
+      });
+
+      await useCase.execute({
+        trackingId,
+        status: UnitState.PICKED_UP,
+        location: 'WAREHOUSE',
+        timestamp: new Date().toISOString(),
+      });
+      await useCase.execute({
+        trackingId,
+        status: UnitState.IN_TRANSIT,
+        location: 'TRUCK',
+        timestamp: new Date().toISOString(),
+      });
+
+      await useCase.execute({
+        trackingId,
+        status: UnitState.FAILED_DELIVERY,
+        location: 'CUSTOMER_ADDRESS',
+        timestamp: new Date().toISOString(),
+        notes: 'Customer not available',
+      });
+      expect((currentUnit as unknown as Unit).currentState).toBe(
+        UnitState.FAILED_DELIVERY,
+      );
+
+      await useCase.execute({
+        trackingId,
+        status: UnitState.RETURNED,
+        location: 'WAREHOUSE',
+        timestamp: new Date().toISOString(),
+      });
+      expect((currentUnit as unknown as Unit).currentState).toBe(
+        UnitState.RETURNED,
+      );
+      expect((currentUnit as unknown as Unit).checkpoints).toHaveLength(5);
+    });
+  });
+});

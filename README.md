@@ -32,20 +32,32 @@ cp .env.example .env
 Edita el archivo `.env` con las siguientes variables:
 
 ```ini
-# Puerto de la API
+# Application
+NODE_ENV=development
 PORT=3000
 
-# Conexión a MongoDB
+# Database
 DATABASE_URL=mongodb://root:password@localhost:27017/tracking_db?authSource=admin
 
-# Conexión a RabbitMQ
+# RabbitMQ
 RABBITMQ_URL=amqp://user:password@localhost:5672
-
-# Nombre de la cola
 CHECKPOINT_QUEUE_NAME=checkpoint_events
 
-# JWT secret (producción)
-JWT_SECRET=your-secret-key-here
+# RabbitMQ Consumer Configuration
+# Prefetch count: messages processed concurrently per consumer
+# - Development (single worker): 5-10
+# - Production (single worker): 5
+# - Production (multiple workers): 1-3
+QUEUE_PREFETCH_COUNT=5
+
+# JWT Configuration
+JWT_SECRET=your-super-secret-jwt-key-minimum-32-characters-long-here
+JWT_EXPIRATION=1h
+JWT_REFRESH_SECRET=your-super-secret-refresh-jwt-key-minimum-32-characters-long
+JWT_REFRESH_EXPIRATION=7d
+
+# Security
+ALLOWED_ORIGINS=http://localhost:3001
 ```
 
 ### 4. Levantar servicios con Docker
@@ -84,6 +96,8 @@ El worker procesará los mensajes de la cola `checkpoint_events`.
 
 ## Ejecución en producción
 
+### Opción 1: docker-compose (desarrollo/staging)
+
 Para ejecutar todo el stack (API, worker, MongoDB y RabbitMQ) con Docker:
 
 ```bash
@@ -95,6 +109,51 @@ docker-compose up -d
 
 # Ver logs
 docker-compose logs -f api worker
+```
+
+### Opción 2: docker standalone (flexible para producción)
+
+El Dockerfile soporta dos modos de ejecución mediante la variable de entorno `ENTRY_FILE`:
+
+**Modo API (default)** - Ejecuta el servidor HTTP con productor y consumidor:
+
+```bash
+# Construir imagen
+docker build -t tracking-api .
+
+# Ejecutar en modo API (default)
+docker run -p 3000:3000 \
+  -e DATABASE_URL=mongodb://... \
+  -e RABBITMQ_URL=amqp://... \
+  tracking-api
+
+# O especificando explícitamente
+docker run -p 3000:3000 \
+  -e ENTRY_FILE=main \
+  -e DATABASE_URL=mongodb://... \
+  -e RABBITMQ_URL=amqp://... \
+  tracking-api
+```
+
+**Modo Worker** - Ejecuta solo el consumidor de mensajes:
+
+```bash
+# Ejecutar en modo Worker (solo consumidor)
+docker run \
+  -e ENTRY_FILE=main.worker \
+  -e DATABASE_URL=mongodb://... \
+  -e RABBITMQ_URL=amqp://... \
+  tracking-api
+```
+
+**Estrategia de escalado:**
+
+```bash
+# 1 instancia API + 3 instancias Worker
+docker run -d -p 3000:3000 -e ENTRY_FILE=main tracking-api      # API
+docker run -d -e ENTRY_FILE=main.worker tracking-api            # Worker 1
+docker run -d -e ENTRY_FILE=main.worker tracking-api            # Worker 2
+docker run -d -e ENTRY_FILE=main.worker tracking-api            # Worker 3
 ```
 
 ## Pruebas

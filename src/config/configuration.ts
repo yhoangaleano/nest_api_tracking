@@ -9,6 +9,7 @@ const configuration = () => ({
   queue: {
     checkpointQueueName:
       process.env.CHECKPOINT_QUEUE_NAME || 'checkpoint_events',
+    prefetchCount: Number.parseInt(process.env.QUEUE_PREFETCH_COUNT || '5', 10),
   },
   jwt: {
     secret: process.env.JWT_SECRET!,

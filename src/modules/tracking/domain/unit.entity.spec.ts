@@ -2,6 +2,10 @@ import { Checkpoint } from './checkpoint.entity';
 import { Unit } from './unit.entity';
 import { UnitState } from './unit-state.enum';
 import { InvalidStateTransitionError } from './unit.errors';
+import {
+  INITIAL_CHECKPOINT_LOCATION_CONSTANT,
+  INITIAL_CHECKPOINT_MESSAGE_CONSTANT,
+} from '../configs/domain-messages.constants';
 
 describe('unit entity', () => {
   describe('create', () => {
@@ -22,8 +26,12 @@ describe('unit entity', () => {
       const initialCheckpoint = unit.checkpoints[0];
       expect(initialCheckpoint).toBeDefined();
       expect(initialCheckpoint!.status).toBe(UnitState.CREATED);
-      expect(initialCheckpoint!.location).toBe('System');
-      expect(initialCheckpoint!.notes).toBe('Unit registered in the system');
+      expect(initialCheckpoint!.location).toBe(
+        INITIAL_CHECKPOINT_LOCATION_CONSTANT,
+      );
+      expect(initialCheckpoint!.notes).toBe(
+        INITIAL_CHECKPOINT_MESSAGE_CONSTANT,
+      );
     });
 
     it('should create unit with timestamp for initial checkpoint', () => {
@@ -243,37 +251,37 @@ describe('unit entity', () => {
         [UnitState.RETURNED]: [],
       };
 
-      Object.entries(validTransitionsMap).forEach(
-        ([fromState, allowedToStates]) => {
-          const unit = Unit.create('T-TEST-00000');
+      for (const [fromState, allowedToStates] of Object.entries(
+        validTransitionsMap,
+      )) {
+        const unit = Unit.create('T-TEST-00000');
 
-          const statesPath = getPathToState(fromState as UnitState);
-          statesPath.forEach((state) => {
+        const statesPath = getPathToState(fromState as UnitState);
+        for (const state of statesPath) {
+          if (state !== UnitState.CREATED) {
+            unit.addCheckpoint(
+              Checkpoint.create(state, 'LOCATION', new Date()),
+            );
+          }
+        }
+
+        for (const toState of allowedToStates) {
+          const testUnit = Unit.create('T-TEST-00001');
+          for (const state of statesPath) {
             if (state !== UnitState.CREATED) {
-              unit.addCheckpoint(
+              testUnit.addCheckpoint(
                 Checkpoint.create(state, 'LOCATION', new Date()),
               );
             }
-          });
+          }
 
-          allowedToStates.forEach((toState) => {
-            const testUnit = Unit.create('T-TEST-00001');
-            statesPath.forEach((state) => {
-              if (state !== UnitState.CREATED) {
-                testUnit.addCheckpoint(
-                  Checkpoint.create(state, 'LOCATION', new Date()),
-                );
-              }
-            });
-
-            expect(() =>
-              testUnit.addCheckpoint(
-                Checkpoint.create(toState, 'LOCATION', new Date()),
-              ),
-            ).not.toThrow();
-          });
-        },
-      );
+          expect(() =>
+            testUnit.addCheckpoint(
+              Checkpoint.create(toState, 'LOCATION', new Date()),
+            ),
+          ).not.toThrow();
+        }
+      }
     });
   });
 

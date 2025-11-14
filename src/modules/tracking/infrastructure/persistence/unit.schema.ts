@@ -7,6 +7,9 @@ import { Document } from 'mongoose';
 // Domain layer
 import { UnitState } from '../../domain/unit-state.enum';
 
+// Own code imports
+import { UNITS_COLLECTION_NAME_CONSTANT } from '../../configs/persistence.constants';
+
 class CheckpointDocument {
   @Prop({ required: true, enum: UnitState })
   status!: UnitState;
@@ -21,7 +24,7 @@ class CheckpointDocument {
   notes?: string;
 }
 
-@Schema({ collection: 'units', timestamps: true })
+@Schema({ collection: UNITS_COLLECTION_NAME_CONSTANT, timestamps: true })
 export class UnitDocument extends Document {
   @Prop({ required: true, unique: true })
   trackingId!: string;
