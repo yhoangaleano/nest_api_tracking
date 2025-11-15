@@ -1,10 +1,10 @@
 import { Checkpoint } from './checkpoint.entity';
-import { UNIT_STATE_ENUMERATION } from './unit-state.enumeration';
-import { InvalidStateTransitionError } from './unit.errors';
+import { UNIT_STATE_ENUMERATION } from '../configs/unit-state.enum';
+import { InvalidStateTransitionError } from '../exceptions/unit.errors';
 import {
   INITIAL_CHECKPOINT_LOCATION_CONSTANT,
   INITIAL_CHECKPOINT_MESSAGE_CONSTANT,
-} from './unit.constants';
+} from '../configs/unit.constants';
 
 export class Unit {
   constructor(

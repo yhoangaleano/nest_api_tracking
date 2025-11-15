@@ -1,4 +1,4 @@
-import { UNIT_STATE_ENUMERATION } from './unit-state.enumeration';
+import { UNIT_STATE_ENUMERATION } from '../configs/unit-state.enum';
 
 export class Checkpoint {
   constructor(

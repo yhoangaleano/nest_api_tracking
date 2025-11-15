@@ -1,10 +1,12 @@
 import { RegisterCheckpointInput } from '../dtos/input/register-checkpoint.input';
 import { RegisterCheckpointUseCase } from './register-checkpoint.use-case';
 
-import { Unit } from '../../domain/unit.entity';
-import { UNIT_STATE_ENUMERATION } from '../../domain/unit-state.enumeration';
-import { InvalidStateTransitionError } from '../../domain/unit.errors';
-import { IUnitRepository } from '../../domain/unit.repository';
+import {
+  Unit,
+  InvalidStateTransitionError,
+  IUnitRepository,
+} from '../../domain';
+import { UNIT_STATE_ENUMERATION } from '../../domain/configs';
 
 describe('register checkpoint use case', () => {
   let useCase: RegisterCheckpointUseCase;

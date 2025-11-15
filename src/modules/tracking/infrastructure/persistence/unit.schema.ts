@@ -5,7 +5,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
 // Domain layer
-import { UNIT_STATE_ENUMERATION } from '../../domain/unit-state.enumeration';
+import { UNIT_STATE_ENUMERATION } from '../../domain/configs';
 
 // Own code imports
 import { UNITS_COLLECTION_NAME_CONSTANT } from '../../configs/persistence.constants';

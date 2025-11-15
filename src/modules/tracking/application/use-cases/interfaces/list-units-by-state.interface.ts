@@ -2,7 +2,7 @@
 import { UnitSummaryResponseOutput } from '../../dtos/output/unit-summary-response.output';
 
 // Domain layer
-import { UNIT_STATE_ENUMERATION } from '../../../domain/unit-state.enumeration';
+import { UNIT_STATE_ENUMERATION } from '../../../domain/configs';
 
 export interface IListUnitsByStateUseCase {
   /**

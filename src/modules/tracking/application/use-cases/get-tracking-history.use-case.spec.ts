@@ -1,11 +1,13 @@
 import { UnitResponseOutput } from '../dtos/output/unit-response.output';
 import { GetTrackingHistoryUseCase } from './get-tracking-history.use-case';
 
-import { Checkpoint } from '../../domain/checkpoint.entity';
-import { Unit } from '../../domain/unit.entity';
-import { UNIT_STATE_ENUMERATION } from '../../domain/unit-state.enumeration';
-import { UnitNotFoundError } from '../../domain/unit.errors';
-import { IUnitRepository } from '../../domain/unit.repository';
+import {
+  Checkpoint,
+  Unit,
+  UnitNotFoundError,
+  IUnitRepository,
+} from '../../domain';
+import { UNIT_STATE_ENUMERATION } from '../../domain/configs';
 
 describe('GetTrackingHistoryUseCase', () => {
   let useCase: GetTrackingHistoryUseCase;

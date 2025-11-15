@@ -1,6 +1,6 @@
 // Domain layer
-import { UNIT_STATE_ENUMERATION } from '../../../domain/unit-state.enumeration';
-import { Unit } from '../../../domain/unit.entity';
+import { Unit } from '../../../domain';
+import { UNIT_STATE_ENUMERATION } from '../../../domain/configs';
 
 // Application layer
 import { CheckpointResponseOutput } from './checkpoint-response.output';

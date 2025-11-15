@@ -6,10 +6,8 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 
 // Domain layer
-import { Checkpoint } from '../../domain/checkpoint.entity';
-import { UNIT_STATE_ENUMERATION } from '../../domain/unit-state.enumeration';
-import { Unit } from '../../domain/unit.entity';
-import { IUnitRepository } from '../../domain/unit.repository';
+import { Checkpoint, Unit, IUnitRepository } from '../../domain';
+import { UNIT_STATE_ENUMERATION } from '../../domain/configs';
 
 // Infrastructure layer
 import { UnitDocument } from './unit.schema';

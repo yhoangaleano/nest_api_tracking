@@ -12,10 +12,8 @@ import {
 } from '../../application/use-cases/interfaces';
 
 // Domain layer
-import {
-  IUnitRepository,
-  UNIT_REPOSITORY_TOKEN_CONSTANT,
-} from '../../domain/unit.repository';
+import { IUnitRepository } from '../../domain';
+import { UNIT_REPOSITORY_TOKEN_CONSTANT } from '../../domain/repositories';
 
 export const USE_CASE_PROVIDERS: Provider[] = [
   {

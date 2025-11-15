@@ -13,7 +13,7 @@ import {
 } from '../../application/use-cases/interfaces';
 
 // Domain layer
-import { InvalidStateTransitionError } from '../../domain/unit.errors';
+import { InvalidStateTransitionError } from '../../domain';
 
 // Own code imports
 import {

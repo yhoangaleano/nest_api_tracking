@@ -8,7 +8,7 @@ import {
 } from 'class-validator';
 
 // Domain layer
-import { UNIT_STATE_ENUMERATION } from '../../domain/unit-state.enumeration';
+import { UNIT_STATE_ENUMERATION } from '../../domain/configs';
 
 export class RegisterCheckpointDto {
   @IsNotEmpty()

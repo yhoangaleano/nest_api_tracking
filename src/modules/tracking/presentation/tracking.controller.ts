@@ -32,7 +32,7 @@ import {
 } from '../application/messaging/checkpoint-producer.interface';
 
 // Domain layer
-import { UnitNotFoundError } from '../domain/unit.errors';
+import { UnitNotFoundError } from '../domain';
 
 // Presentation layer
 import { ListUnitsQueryDto } from './dtos/list-units-query.dto';

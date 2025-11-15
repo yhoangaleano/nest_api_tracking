@@ -1,9 +1,9 @@
-import { UNIT_STATE_ENUMERATION } from './unit-state.enumeration';
+import { UNIT_STATE_ENUMERATION } from '../configs/unit-state.enum';
 import { InvalidStateTransitionError, UnitNotFoundError } from './unit.errors';
 import {
   INVALID_STATE_TRANSITION_ERROR_CODE_CONSTANT,
   UNIT_NOT_FOUND_ERROR_CODE_CONSTANT,
-} from './unit.constants';
+} from '../configs/unit.constants';
 
 describe('domain errors', () => {
   describe('UnitNotFoundError', () => {

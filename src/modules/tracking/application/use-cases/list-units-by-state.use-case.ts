@@ -3,8 +3,8 @@ import { UnitSummaryResponseOutput } from '../dtos/output/unit-summary-response.
 import { IListUnitsByStateUseCase } from './interfaces/list-units-by-state.interface';
 
 // Domain layer
-import { UNIT_STATE_ENUMERATION } from '../../domain/unit-state.enumeration';
-import { IUnitRepository } from '../../domain/unit.repository';
+import { IUnitRepository } from '../../domain';
+import { UNIT_STATE_ENUMERATION } from '../../domain/configs';
 
 export class ListUnitsByStateUseCase implements IListUnitsByStateUseCase {
   constructor(private readonly unitRepository: IUnitRepository) {}

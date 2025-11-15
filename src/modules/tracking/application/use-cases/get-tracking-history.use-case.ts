@@ -3,8 +3,7 @@ import { UnitResponseOutput } from '../dtos/output/unit-response.output';
 import { IGetTrackingHistoryUseCase } from './interfaces/get-tracking-history.interface';
 
 // Domain layer
-import { UnitNotFoundError } from '../../domain/unit.errors';
-import { IUnitRepository } from '../../domain/unit.repository';
+import { UnitNotFoundError, IUnitRepository } from '../../domain';
 
 export class GetTrackingHistoryUseCase implements IGetTrackingHistoryUseCase {
   constructor(private readonly unitRepository: IUnitRepository) {}

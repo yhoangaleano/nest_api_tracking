@@ -3,9 +3,7 @@ import { RegisterCheckpointInput } from '../dtos/input/register-checkpoint.input
 import { IRegisterCheckpointUseCase } from './interfaces/register-checkpoint.interface';
 
 // Domain layer
-import { Checkpoint } from '../../domain/checkpoint.entity';
-import { Unit } from '../../domain/unit.entity';
-import { IUnitRepository } from '../../domain/unit.repository';
+import { Checkpoint, Unit, IUnitRepository } from '../../domain';
 
 export class RegisterCheckpointUseCase implements IRegisterCheckpointUseCase {
   constructor(private readonly unitRepository: IUnitRepository) {}

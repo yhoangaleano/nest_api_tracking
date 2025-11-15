@@ -2,7 +2,7 @@ import { DomainException } from './domain.exception';
 import {
   INVALID_STATE_TRANSITION_ERROR_CODE_CONSTANT,
   UNIT_NOT_FOUND_ERROR_CODE_CONSTANT,
-} from './unit.constants';
+} from '../configs/unit.constants';
 
 export class InvalidStateTransitionError extends DomainException {
   constructor(from: string, to: string) {
