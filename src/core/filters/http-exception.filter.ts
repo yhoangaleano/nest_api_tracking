@@ -34,7 +34,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       method: string;
       message: string | string[];
       error: string;
-      validationErrors?: unknown;
+      validationErrors?: string[];
     } = {
       statusCode: status,
       timestamp: new Date().toISOString(),

@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Inject,
   NotFoundException,
   Param,
   Post,
@@ -16,16 +17,22 @@ import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { LoggerService } from '../../../core/logger/logger.service';
 
 // Application layer
-import { UnitResponseDto } from '../application/dtos/unit-response.dto';
-import { UnitSummaryResponseDto } from '../application/dtos/unit-summary-response.dto';
-import { GetTrackingHistoryUseCase } from '../application/use-cases/get-tracking-history.use-case';
-import { ListUnitsByStateUseCase } from '../application/use-cases/list-units-by-state.use-case';
+import { RegisterCheckpointInput } from '../application/dtos/input/register-checkpoint.input';
+import { UnitResponseOutput } from '../application/dtos/output/unit-response.output';
+import { UnitSummaryResponseOutput } from '../application/dtos/output/unit-summary-response.output';
+import {
+  GET_TRACKING_HISTORY_USE_CASE_TOKEN,
+  LIST_UNITS_BY_STATE_USE_CASE_TOKEN,
+  IGetTrackingHistoryUseCase,
+  IListUnitsByStateUseCase,
+} from '../application/use-cases/interfaces';
+import {
+  ICheckpointProducer,
+  CHECKPOINT_PRODUCER_TOKEN,
+} from '../application/messaging/checkpoint-producer.interface';
 
 // Domain layer
 import { UnitNotFoundError } from '../domain/unit.errors';
-
-// Infrastructure layer
-import { CheckpointProducer } from '../infrastructure/messaging/checkpoint.producer';
 
 // Presentation layer
 import { ListUnitsQueryDto } from './dtos/list-units-query.dto';
@@ -35,9 +42,12 @@ import { RegisterCheckpointDto } from './dtos/register-checkpoint.dto';
 @Controller('api/v1')
 export class TrackingController {
   constructor(
-    private readonly checkpointProducer: CheckpointProducer,
-    private readonly getTrackingHistoryUseCase: GetTrackingHistoryUseCase,
-    private readonly listUnitsByStateUseCase: ListUnitsByStateUseCase,
+    @Inject(CHECKPOINT_PRODUCER_TOKEN)
+    private readonly checkpointProducer: ICheckpointProducer,
+    @Inject(GET_TRACKING_HISTORY_USE_CASE_TOKEN)
+    private readonly getTrackingHistoryUseCase: IGetTrackingHistoryUseCase,
+    @Inject(LIST_UNITS_BY_STATE_USE_CASE_TOKEN)
+    private readonly listUnitsByStateUseCase: IListUnitsByStateUseCase,
     private readonly logger: LoggerService,
   ) {
     this.logger.setContext('TrackingController');
@@ -55,7 +65,15 @@ export class TrackingController {
       location: dto.location,
     });
 
-    this.checkpointProducer.publish(dto);
+    const input: RegisterCheckpointInput = {
+      trackingId: dto.trackingId,
+      status: dto.status,
+      location: dto.location,
+      timestamp: dto.timestamp,
+      notes: dto.notes,
+    };
+
+    this.checkpointProducer.publish(input);
 
     return {
       message: 'Checkpoint received and queued for processing.',
@@ -67,20 +85,21 @@ export class TrackingController {
   @ApiResponse({
     status: 200,
     description: 'History found',
-    type: UnitResponseDto,
+    type: UnitResponseOutput,
   })
   @ApiResponse({ status: 404, description: 'Unit not found' })
   async getTrackingHistory(
     @Param('trackingId') trackingId: string,
-  ): Promise<UnitResponseDto> {
+  ): Promise<UnitResponseOutput> {
     this.logger.debug(`Retrieving tracking history for: ${trackingId}`);
 
     try {
-      const unitDto = await this.getTrackingHistoryUseCase.execute(trackingId);
+      const unitOutput =
+        await this.getTrackingHistoryUseCase.execute(trackingId);
       this.logger.log(
         `Tracking history retrieved successfully for: ${trackingId}`,
       );
-      return unitDto;
+      return unitOutput;
     } catch (error) {
       if (error instanceof UnitNotFoundError) {
         this.logger.warn(`Unit not found: ${trackingId}`);
@@ -99,21 +118,23 @@ export class TrackingController {
   @ApiResponse({
     status: 200,
     description: 'List of units',
-    type: [UnitSummaryResponseDto],
+    type: [UnitSummaryResponseOutput],
   })
   @ApiResponse({ status: 400, description: 'Invalid state' })
   async listShipmentsByState(
     @Query() query: ListUnitsQueryDto,
-  ): Promise<UnitSummaryResponseDto[]> {
+  ): Promise<UnitSummaryResponseOutput[]> {
     this.logger.debug(`Listing shipments by state: ${query.status}`);
 
-    const unitDtos = await this.listUnitsByStateUseCase.execute(query.status);
+    const unitOutputs = await this.listUnitsByStateUseCase.execute(
+      query.status,
+    );
 
     this.logger.logWithMetadata('info', 'Shipments listed', {
       status: query.status,
-      count: unitDtos.length,
+      count: unitOutputs.length,
     });
 
-    return unitDtos;
+    return unitOutputs;
   }
 }

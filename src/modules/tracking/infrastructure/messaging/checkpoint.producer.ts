@@ -5,8 +5,9 @@ import { ConfigService } from '@nestjs/config';
 // Third-party libraries
 import { Channel } from 'amqplib';
 
-// Presentation layer
-import { RegisterCheckpointDto } from '../../presentation/dtos/register-checkpoint.dto';
+// Application layer
+import { ICheckpointProducer } from '../../application/messaging/checkpoint-producer.interface';
+import { RegisterCheckpointInput } from '../../application/dtos/input/register-checkpoint.input';
 
 // Own code imports
 import {
@@ -18,7 +19,7 @@ import {
 import { RabbitMQConnectionService } from './rabbitmq-connection.service';
 
 @Injectable()
-export class CheckpointProducer implements OnModuleInit {
+export class CheckpointProducer implements OnModuleInit, ICheckpointProducer {
   private channel!: Channel;
   private readonly queueName: string;
 
@@ -36,8 +37,8 @@ export class CheckpointProducer implements OnModuleInit {
     await this.rabbitMQConnection.assertQueue(this.channel, this.queueName);
   }
 
-  publish(checkpoint: RegisterCheckpointDto): void {
-    const message = JSON.stringify(checkpoint);
+  publish(input: RegisterCheckpointInput): void {
+    const message = JSON.stringify(input);
     this.channel.sendToQueue(this.queueName, Buffer.from(message), {
       persistent: true,
     });

@@ -1,4 +1,4 @@
-import { DomainException } from '../../../shared/domain/domain.exception';
+import { DomainException } from './domain.exception';
 import {
   INVALID_STATE_TRANSITION_ERROR_CODE_CONSTANT,
   UNIT_NOT_FOUND_ERROR_CODE_CONSTANT,

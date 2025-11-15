@@ -4,9 +4,7 @@ import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 
 // Application layer
-import { GetTrackingHistoryUseCase } from './application/use-cases/get-tracking-history.use-case';
-import { ListUnitsByStateUseCase } from './application/use-cases/list-units-by-state.use-case';
-import { RegisterCheckpointUseCase } from './application/use-cases/register-checkpoint.use-case';
+import { CHECKPOINT_PRODUCER_TOKEN } from './application/messaging/checkpoint-producer.interface';
 
 // Domain layer
 import { UNIT_REPOSITORY_TOKEN_CONSTANT } from './domain/unit.repository';
@@ -20,6 +18,7 @@ import {
   UnitDocument,
   UnitSchema,
 } from './infrastructure/persistence/unit.schema';
+import { USE_CASE_PROVIDERS } from './infrastructure/providers/use-case.providers';
 
 // Presentation layer
 import { TrackingController } from './presentation/tracking.controller';
@@ -33,10 +32,8 @@ import { TrackingController } from './presentation/tracking.controller';
   ],
   controllers: [TrackingController],
   providers: [
-    // Use Cases
-    RegisterCheckpointUseCase,
-    GetTrackingHistoryUseCase,
-    ListUnitsByStateUseCase,
+    // Use Cases (Clean Architecture - Factory Pattern)
+    ...USE_CASE_PROVIDERS,
 
     // Repository (Dependency Injection)
     {
@@ -44,9 +41,12 @@ import { TrackingController } from './presentation/tracking.controller';
       useClass: MongoUnitRepository,
     },
 
-    // Messaging
+    // Messaging (Dependency Injection)
+    {
+      provide: CHECKPOINT_PRODUCER_TOKEN,
+      useClass: CheckpointProducer,
+    },
     RabbitMQConnectionService,
-    CheckpointProducer,
     CheckpointConsumer,
   ],
   exports: [CheckpointConsumer],

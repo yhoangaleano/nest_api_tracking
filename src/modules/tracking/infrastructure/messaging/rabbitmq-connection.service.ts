@@ -12,7 +12,7 @@ import { Channel, ChannelModel, connect } from 'amqplib';
 @Injectable()
 export class RabbitMQConnectionService implements OnModuleDestroy {
   private connection: ChannelModel | null = null;
-  private channels: Channel[] = [];
+  private readonly channels: Channel[] = [];
 
   constructor(private readonly configService: ConfigService) {}
 

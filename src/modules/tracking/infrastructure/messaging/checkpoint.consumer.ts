@@ -1,15 +1,16 @@
 // Framework imports
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 // Third-party libraries
 import { Channel, ConsumeMessage } from 'amqplib';
 
 // Application layer
-import { RegisterCheckpointUseCase } from '../../application/use-cases/register-checkpoint.use-case';
-
-// Presentation layer
-import { RegisterCheckpointDto } from '../../presentation/dtos/register-checkpoint.dto';
+import { RegisterCheckpointInput } from '../../application/dtos/input/register-checkpoint.input';
+import {
+  IRegisterCheckpointUseCase,
+  REGISTER_CHECKPOINT_USE_CASE_TOKEN,
+} from '../../application/use-cases/interfaces';
 
 // Domain layer
 import { InvalidStateTransitionError } from '../../domain/unit.errors';
@@ -42,7 +43,8 @@ export class CheckpointConsumer implements OnModuleInit {
   constructor(
     private readonly configService: ConfigService,
     private readonly rabbitMQConnection: RabbitMQConnectionService,
-    private readonly registerCheckpointUseCase: RegisterCheckpointUseCase,
+    @Inject(REGISTER_CHECKPOINT_USE_CASE_TOKEN)
+    private readonly registerCheckpointUseCase: IRegisterCheckpointUseCase,
   ) {
     this.queueName =
       this.configService.get<string>(CHECKPOINT_QUEUE_CONFIG_KEY_CONSTANT) ||
@@ -90,7 +92,7 @@ export class CheckpointConsumer implements OnModuleInit {
 
     try {
       const content = msg.content.toString();
-      const checkpoint = JSON.parse(content) as RegisterCheckpointDto;
+      const checkpoint = JSON.parse(content) as RegisterCheckpointInput;
 
       await this.registerCheckpointUseCase.execute(checkpoint);
       this.channel.ack(msg);

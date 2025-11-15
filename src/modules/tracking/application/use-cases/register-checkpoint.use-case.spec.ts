@@ -1,39 +1,24 @@
-import { Test, TestingModule } from '@nestjs/testing';
-
+import { RegisterCheckpointInput } from '../dtos/input/register-checkpoint.input';
 import { RegisterCheckpointUseCase } from './register-checkpoint.use-case';
 
 import { Unit } from '../../domain/unit.entity';
 import { UNIT_STATE_ENUMERATION } from '../../domain/unit-state.enumeration';
 import { InvalidStateTransitionError } from '../../domain/unit.errors';
-import {
-  IUnitRepository,
-  UNIT_REPOSITORY_TOKEN_CONSTANT,
-} from '../../domain/unit.repository';
-
-import { RegisterCheckpointDto } from '../../presentation/dtos/register-checkpoint.dto';
+import { IUnitRepository } from '../../domain/unit.repository';
 
 describe('register checkpoint use case', () => {
   let useCase: RegisterCheckpointUseCase;
   let mockRepository: jest.Mocked<IUnitRepository>;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     mockRepository = {
       findByTrackingId: jest.fn(),
       save: jest.fn(),
       findByState: jest.fn(),
     } as jest.Mocked<IUnitRepository>;
 
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        RegisterCheckpointUseCase,
-        {
-          provide: UNIT_REPOSITORY_TOKEN_CONSTANT,
-          useValue: mockRepository,
-        },
-      ],
-    }).compile();
-
-    useCase = module.get<RegisterCheckpointUseCase>(RegisterCheckpointUseCase);
+    // Plain class instantiation - no NestJS DI needed
+    useCase = new RegisterCheckpointUseCase(mockRepository);
   });
 
   afterEach(() => {
@@ -42,7 +27,7 @@ describe('register checkpoint use case', () => {
 
   describe('execute', () => {
     it('should create new unit when tracking ID does not exist', async () => {
-      const dto: RegisterCheckpointDto = {
+      const input: RegisterCheckpointInput = {
         trackingId: 'T-NEW-12345',
         status: UNIT_STATE_ENUMERATION.PICKED_UP,
         location: 'ORIGIN_WAREHOUSE',
@@ -52,14 +37,14 @@ describe('register checkpoint use case', () => {
       mockRepository.findByTrackingId.mockResolvedValue(null);
       mockRepository.save.mockImplementation((unit) => Promise.resolve(unit));
 
-      await useCase.execute(dto);
+      await useCase.execute(input);
 
       expect(mockRepository.findByTrackingId).toHaveBeenCalledWith(
-        dto.trackingId,
+        input.trackingId,
       );
       expect(mockRepository.save).toHaveBeenCalledTimes(1);
       const savedUnit = mockRepository.save.mock.calls[0]![0];
-      expect(savedUnit.trackingId).toBe(dto.trackingId);
+      expect(savedUnit.trackingId).toBe(input.trackingId);
       expect(savedUnit.currentState).toBe(UNIT_STATE_ENUMERATION.PICKED_UP);
     });
 
@@ -67,7 +52,7 @@ describe('register checkpoint use case', () => {
       const trackingId = 'T-ABC-12345';
       const existingUnit = Unit.create(trackingId);
 
-      const dto: RegisterCheckpointDto = {
+      const input: RegisterCheckpointInput = {
         trackingId,
         status: UNIT_STATE_ENUMERATION.PICKED_UP,
         location: 'WAREHOUSE_A',
@@ -77,7 +62,7 @@ describe('register checkpoint use case', () => {
       mockRepository.findByTrackingId.mockResolvedValue(existingUnit);
       mockRepository.save.mockImplementation((unit) => Promise.resolve(unit));
 
-      await useCase.execute(dto);
+      await useCase.execute(input);
 
       expect(mockRepository.findByTrackingId).toHaveBeenCalledWith(trackingId);
       expect(mockRepository.save).toHaveBeenCalledTimes(1);
@@ -148,14 +133,14 @@ describe('register checkpoint use case', () => {
 
       mockRepository.findByTrackingId.mockResolvedValue(existingUnit);
 
-      const dto: RegisterCheckpointDto = {
+      const input: RegisterCheckpointInput = {
         trackingId,
         status: UNIT_STATE_ENUMERATION.DELIVERED,
         location: 'CUSTOMER_ADDRESS',
         timestamp: new Date().toISOString(),
       };
 
-      await expect(useCase.execute(dto)).rejects.toThrow(
+      await expect(useCase.execute(input)).rejects.toThrow(
         InvalidStateTransitionError,
       );
 
@@ -163,7 +148,7 @@ describe('register checkpoint use case', () => {
     });
 
     it('should handle repository findByTrackingId errors', async () => {
-      const dto: RegisterCheckpointDto = {
+      const input: RegisterCheckpointInput = {
         trackingId: 'T-ABC-12345',
         status: UNIT_STATE_ENUMERATION.PICKED_UP,
         location: 'WAREHOUSE_A',
@@ -174,7 +159,7 @@ describe('register checkpoint use case', () => {
         new Error('Database connection failed'),
       );
 
-      await expect(useCase.execute(dto)).rejects.toThrow(
+      await expect(useCase.execute(input)).rejects.toThrow(
         'Database connection failed',
       );
 
@@ -188,14 +173,14 @@ describe('register checkpoint use case', () => {
       mockRepository.findByTrackingId.mockResolvedValue(existingUnit);
       mockRepository.save.mockRejectedValue(new Error('Database write failed'));
 
-      const dto: RegisterCheckpointDto = {
+      const input: RegisterCheckpointInput = {
         trackingId,
         status: UNIT_STATE_ENUMERATION.PICKED_UP,
         location: 'WAREHOUSE_A',
         timestamp: new Date().toISOString(),
       };
 
-      await expect(useCase.execute(dto)).rejects.toThrow(
+      await expect(useCase.execute(input)).rejects.toThrow(
         'Database write failed',
       );
     });

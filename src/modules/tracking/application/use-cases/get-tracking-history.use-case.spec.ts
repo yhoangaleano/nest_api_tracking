@@ -1,39 +1,25 @@
-import { Test, TestingModule } from '@nestjs/testing';
-
-import { UnitResponseDto } from '../dtos/unit-response.dto';
+import { UnitResponseOutput } from '../dtos/output/unit-response.output';
 import { GetTrackingHistoryUseCase } from './get-tracking-history.use-case';
 
 import { Checkpoint } from '../../domain/checkpoint.entity';
 import { Unit } from '../../domain/unit.entity';
 import { UNIT_STATE_ENUMERATION } from '../../domain/unit-state.enumeration';
 import { UnitNotFoundError } from '../../domain/unit.errors';
-import {
-  IUnitRepository,
-  UNIT_REPOSITORY_TOKEN_CONSTANT,
-} from '../../domain/unit.repository';
+import { IUnitRepository } from '../../domain/unit.repository';
 
 describe('GetTrackingHistoryUseCase', () => {
   let useCase: GetTrackingHistoryUseCase;
   let mockRepository: jest.Mocked<IUnitRepository>;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     mockRepository = {
       findByTrackingId: jest.fn(),
       save: jest.fn(),
       findByState: jest.fn(),
     } as jest.Mocked<IUnitRepository>;
 
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        GetTrackingHistoryUseCase,
-        {
-          provide: UNIT_REPOSITORY_TOKEN_CONSTANT,
-          useValue: mockRepository,
-        },
-      ],
-    }).compile();
-
-    useCase = module.get<GetTrackingHistoryUseCase>(GetTrackingHistoryUseCase);
+    // Plain class instantiation - no NestJS DI needed
+    useCase = new GetTrackingHistoryUseCase(mockRepository);
   });
 
   afterEach(() => {
@@ -51,7 +37,7 @@ describe('GetTrackingHistoryUseCase', () => {
 
       expect(mockRepository.findByTrackingId).toHaveBeenCalledWith(trackingId);
       expect(mockRepository.findByTrackingId).toHaveBeenCalledTimes(1);
-      expect(result).toBeInstanceOf(UnitResponseDto);
+      expect(result).toBeInstanceOf(UnitResponseOutput);
       expect(result.trackingId).toBe(trackingId);
       expect(result.currentState).toBe(UNIT_STATE_ENUMERATION.CREATED);
     });
@@ -86,7 +72,7 @@ describe('GetTrackingHistoryUseCase', () => {
 
       const result = await useCase.execute(trackingId);
 
-      expect(result).toBeInstanceOf(UnitResponseDto);
+      expect(result).toBeInstanceOf(UnitResponseOutput);
       expect(result.checkpoints).toHaveLength(4);
       expect(result.currentState).toBe(UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY);
       expect(result.checkpoints[0]!.status).toBe(
@@ -113,7 +99,7 @@ describe('GetTrackingHistoryUseCase', () => {
 
       const result = await useCase.execute(trackingId);
 
-      expect(result).toBeInstanceOf(UnitResponseDto);
+      expect(result).toBeInstanceOf(UnitResponseOutput);
       expect(result.checkpoints).toHaveLength(1);
       expect(result.currentState).toBe(UNIT_STATE_ENUMERATION.CREATED);
       expect(result.checkpoints[0]!.status).toBe(
@@ -167,7 +153,7 @@ describe('GetTrackingHistoryUseCase', () => {
 
       const result = await useCase.execute(trackingId);
 
-      expect(result).toBeInstanceOf(UnitResponseDto);
+      expect(result).toBeInstanceOf(UnitResponseOutput);
       expect(result.currentState).toBe(UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY);
       expect(result.checkpoints).toHaveLength(6);
     });
@@ -253,7 +239,7 @@ describe('GetTrackingHistoryUseCase', () => {
 
       const result = await useCase.execute(trackingId);
 
-      expect(result).toBeInstanceOf(UnitResponseDto);
+      expect(result).toBeInstanceOf(UnitResponseOutput);
       expect(result.checkpoints.length).toBe(15);
       expect(result.currentState).toBe(UNIT_STATE_ENUMERATION.DELIVERED);
     });

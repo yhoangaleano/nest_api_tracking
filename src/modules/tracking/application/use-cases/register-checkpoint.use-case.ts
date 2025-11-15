@@ -1,34 +1,25 @@
-// Framework imports
-import { Inject, Injectable } from '@nestjs/common';
-
-// Presentation layer
-import { RegisterCheckpointDto } from '../../presentation/dtos/register-checkpoint.dto';
+// Application layer
+import { RegisterCheckpointInput } from '../dtos/input/register-checkpoint.input';
+import { IRegisterCheckpointUseCase } from './interfaces/register-checkpoint.interface';
 
 // Domain layer
 import { Checkpoint } from '../../domain/checkpoint.entity';
 import { Unit } from '../../domain/unit.entity';
-import {
-  IUnitRepository,
-  UNIT_REPOSITORY_TOKEN_CONSTANT,
-} from '../../domain/unit.repository';
+import { IUnitRepository } from '../../domain/unit.repository';
 
-@Injectable()
-export class RegisterCheckpointUseCase {
-  constructor(
-    @Inject(UNIT_REPOSITORY_TOKEN_CONSTANT)
-    private readonly unitRepository: IUnitRepository,
-  ) {}
+export class RegisterCheckpointUseCase implements IRegisterCheckpointUseCase {
+  constructor(private readonly unitRepository: IUnitRepository) {}
 
-  async execute(dto: RegisterCheckpointDto): Promise<void> {
-    let unit = await this.unitRepository.findByTrackingId(dto.trackingId);
+  async execute(input: RegisterCheckpointInput): Promise<void> {
+    let unit = await this.unitRepository.findByTrackingId(input.trackingId);
 
-    unit ??= Unit.create(dto.trackingId);
+    unit ??= Unit.create(input.trackingId);
 
     const checkpoint = Checkpoint.create(
-      dto.status,
-      dto.location,
-      new Date(dto.timestamp),
-      dto.notes,
+      input.status,
+      input.location,
+      new Date(input.timestamp),
+      input.notes,
     );
 
     unit.addCheckpoint(checkpoint);

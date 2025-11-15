@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { JwtService as NestJwtService } from '@nestjs/jwt';
+import { JwtService as NestJwtService, JwtSignOptions } from '@nestjs/jwt';
 
 import { User } from '../../domain/user.entity';
 
@@ -36,18 +36,11 @@ export class JwtService {
       role: user.role,
     };
 
-    const secret = this.configService.get<string>('jwt.refreshSecret')!;
-    const expiresIn = this.configService.get<string>('jwt.refreshExpiration')!;
-
-    const options = {
-      secret,
-      expiresIn: expiresIn as unknown as
-        | number
-        | `${number}ms`
-        | `${number}s`
-        | `${number}m`
-        | `${number}h`
-        | `${number}d`,
+    const options: JwtSignOptions = {
+      secret: this.configService.get<string>('jwt.refreshSecret')!,
+      expiresIn: this.configService.get<string>(
+        'jwt.refreshExpiration',
+      )! as JwtSignOptions['expiresIn'],
     };
 
     return this.nestJwtService.sign(payload, options);

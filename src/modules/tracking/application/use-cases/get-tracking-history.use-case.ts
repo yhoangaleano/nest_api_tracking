@@ -1,30 +1,21 @@
-// Framework imports
-import { Inject, Injectable } from '@nestjs/common';
-
 // Application layer
-import { UnitResponseDto } from '../dtos/unit-response.dto';
+import { UnitResponseOutput } from '../dtos/output/unit-response.output';
+import { IGetTrackingHistoryUseCase } from './interfaces/get-tracking-history.interface';
 
 // Domain layer
 import { UnitNotFoundError } from '../../domain/unit.errors';
-import {
-  IUnitRepository,
-  UNIT_REPOSITORY_TOKEN_CONSTANT,
-} from '../../domain/unit.repository';
+import { IUnitRepository } from '../../domain/unit.repository';
 
-@Injectable()
-export class GetTrackingHistoryUseCase {
-  constructor(
-    @Inject(UNIT_REPOSITORY_TOKEN_CONSTANT)
-    private readonly unitRepository: IUnitRepository,
-  ) {}
+export class GetTrackingHistoryUseCase implements IGetTrackingHistoryUseCase {
+  constructor(private readonly unitRepository: IUnitRepository) {}
 
-  async execute(trackingId: string): Promise<UnitResponseDto> {
+  async execute(trackingId: string): Promise<UnitResponseOutput> {
     const unit = await this.unitRepository.findByTrackingId(trackingId);
 
     if (!unit) {
       throw new UnitNotFoundError(trackingId);
     }
 
-    return UnitResponseDto.fromEntity(unit);
+    return UnitResponseOutput.fromEntity(unit);
   }
 }

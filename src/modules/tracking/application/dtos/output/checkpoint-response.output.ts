@@ -1,7 +1,7 @@
 // Domain layer
-import { UNIT_STATE_ENUMERATION } from '../../domain/unit-state.enumeration';
+import { UNIT_STATE_ENUMERATION } from '../../../domain/unit-state.enumeration';
 
-export class CheckpointResponseDto {
+export class CheckpointResponseOutput {
   status: UNIT_STATE_ENUMERATION;
   timestamp: string;
   location: string;
