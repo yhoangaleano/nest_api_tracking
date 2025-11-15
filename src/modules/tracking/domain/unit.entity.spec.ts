@@ -96,7 +96,11 @@ describe('unit entity', () => {
     it('should reject backwards transition: PICKED_UP → CREATED', () => {
       const unit = Unit.create('T-ABC-12345');
       unit.addCheckpoint(
-        Checkpoint.create(UNIT_STATE_ENUMERATION.PICKED_UP, 'WAREHOUSE_A', new Date()),
+        Checkpoint.create(
+          UNIT_STATE_ENUMERATION.PICKED_UP,
+          'WAREHOUSE_A',
+          new Date(),
+        ),
       );
 
       const backwardCheckpoint = Checkpoint.create(
@@ -114,10 +118,18 @@ describe('unit entity', () => {
     it('should reject backwards transition: IN_TRANSIT → PICKED_UP', () => {
       const unit = Unit.create('T-ABC-12345');
       unit.addCheckpoint(
-        Checkpoint.create(UNIT_STATE_ENUMERATION.PICKED_UP, 'WAREHOUSE_A', new Date()),
+        Checkpoint.create(
+          UNIT_STATE_ENUMERATION.PICKED_UP,
+          'WAREHOUSE_A',
+          new Date(),
+        ),
       );
       unit.addCheckpoint(
-        Checkpoint.create(UNIT_STATE_ENUMERATION.IN_TRANSIT, 'TRUCK_A123', new Date()),
+        Checkpoint.create(
+          UNIT_STATE_ENUMERATION.IN_TRANSIT,
+          'TRUCK_A123',
+          new Date(),
+        ),
       );
 
       const backwardCheckpoint = Checkpoint.create(
@@ -134,10 +146,18 @@ describe('unit entity', () => {
     it('should reject transition from final state DELIVERED', () => {
       const unit = Unit.create('T-ABC-12345');
       unit.addCheckpoint(
-        Checkpoint.create(UNIT_STATE_ENUMERATION.PICKED_UP, 'WAREHOUSE_A', new Date()),
+        Checkpoint.create(
+          UNIT_STATE_ENUMERATION.PICKED_UP,
+          'WAREHOUSE_A',
+          new Date(),
+        ),
       );
       unit.addCheckpoint(
-        Checkpoint.create(UNIT_STATE_ENUMERATION.IN_TRANSIT, 'TRUCK_A123', new Date()),
+        Checkpoint.create(
+          UNIT_STATE_ENUMERATION.IN_TRANSIT,
+          'TRUCK_A123',
+          new Date(),
+        ),
       );
       unit.addCheckpoint(
         Checkpoint.create(
@@ -147,7 +167,11 @@ describe('unit entity', () => {
         ),
       );
       unit.addCheckpoint(
-        Checkpoint.create(UNIT_STATE_ENUMERATION.DELIVERED, 'CUSTOMER_ADDRESS', new Date()),
+        Checkpoint.create(
+          UNIT_STATE_ENUMERATION.DELIVERED,
+          'CUSTOMER_ADDRESS',
+          new Date(),
+        ),
       );
 
       const checkpoint = Checkpoint.create(
@@ -165,10 +189,18 @@ describe('unit entity', () => {
     it('should reject transition from final state RETURNED', () => {
       const unit = Unit.create('T-ABC-12345');
       unit.addCheckpoint(
-        Checkpoint.create(UNIT_STATE_ENUMERATION.PICKED_UP, 'WAREHOUSE_A', new Date()),
+        Checkpoint.create(
+          UNIT_STATE_ENUMERATION.PICKED_UP,
+          'WAREHOUSE_A',
+          new Date(),
+        ),
       );
       unit.addCheckpoint(
-        Checkpoint.create(UNIT_STATE_ENUMERATION.IN_TRANSIT, 'TRUCK_A123', new Date()),
+        Checkpoint.create(
+          UNIT_STATE_ENUMERATION.IN_TRANSIT,
+          'TRUCK_A123',
+          new Date(),
+        ),
       );
       unit.addCheckpoint(
         Checkpoint.create(
@@ -178,7 +210,11 @@ describe('unit entity', () => {
         ),
       );
       unit.addCheckpoint(
-        Checkpoint.create(UNIT_STATE_ENUMERATION.RETURNED, 'WAREHOUSE_A', new Date()),
+        Checkpoint.create(
+          UNIT_STATE_ENUMERATION.RETURNED,
+          'WAREHOUSE_A',
+          new Date(),
+        ),
       );
 
       const checkpoint = Checkpoint.create(
@@ -235,7 +271,10 @@ describe('unit entity', () => {
 
   describe('state machine validation', () => {
     it('should have correct valid transitions map for all states', () => {
-      const validTransitionsMap: Record<UNIT_STATE_ENUMERATION, UNIT_STATE_ENUMERATION[]> = {
+      const validTransitionsMap: Record<
+        UNIT_STATE_ENUMERATION,
+        UNIT_STATE_ENUMERATION[]
+      > = {
         [UNIT_STATE_ENUMERATION.CREATED]: [UNIT_STATE_ENUMERATION.PICKED_UP],
         [UNIT_STATE_ENUMERATION.PICKED_UP]: [UNIT_STATE_ENUMERATION.IN_TRANSIT],
         [UNIT_STATE_ENUMERATION.IN_TRANSIT]: [
@@ -247,7 +286,10 @@ describe('unit entity', () => {
           UNIT_STATE_ENUMERATION.FAILED_DELIVERY,
         ],
         [UNIT_STATE_ENUMERATION.DELIVERED]: [],
-        [UNIT_STATE_ENUMERATION.FAILED_DELIVERY]: [UNIT_STATE_ENUMERATION.RETURNED, UNIT_STATE_ENUMERATION.IN_TRANSIT],
+        [UNIT_STATE_ENUMERATION.FAILED_DELIVERY]: [
+          UNIT_STATE_ENUMERATION.RETURNED,
+          UNIT_STATE_ENUMERATION.IN_TRANSIT,
+        ],
         [UNIT_STATE_ENUMERATION.RETURNED]: [],
       };
 
@@ -293,10 +335,18 @@ describe('unit entity', () => {
         Checkpoint.create(UNIT_STATE_ENUMERATION.PICKED_UP, 'LOC1', new Date()),
       );
       unit.addCheckpoint(
-        Checkpoint.create(UNIT_STATE_ENUMERATION.IN_TRANSIT, 'LOC2', new Date()),
+        Checkpoint.create(
+          UNIT_STATE_ENUMERATION.IN_TRANSIT,
+          'LOC2',
+          new Date(),
+        ),
       );
       unit.addCheckpoint(
-        Checkpoint.create(UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY, 'LOC3', new Date()),
+        Checkpoint.create(
+          UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY,
+          'LOC3',
+          new Date(),
+        ),
       );
       unit.addCheckpoint(
         Checkpoint.create(UNIT_STATE_ENUMERATION.DELIVERED, 'LOC4', new Date()),
@@ -319,7 +369,11 @@ describe('unit entity', () => {
       const originalTrackingId = unit.trackingId;
 
       unit.addCheckpoint(
-        Checkpoint.create(UNIT_STATE_ENUMERATION.PICKED_UP, 'WAREHOUSE_A', new Date()),
+        Checkpoint.create(
+          UNIT_STATE_ENUMERATION.PICKED_UP,
+          'WAREHOUSE_A',
+          new Date(),
+        ),
       );
 
       expect(unit.id).toBe(originalId);
@@ -328,10 +382,15 @@ describe('unit entity', () => {
   });
 });
 
-function getPathToState(targetState: UNIT_STATE_ENUMERATION): UNIT_STATE_ENUMERATION[] {
+function getPathToState(
+  targetState: UNIT_STATE_ENUMERATION,
+): UNIT_STATE_ENUMERATION[] {
   const paths: Record<UNIT_STATE_ENUMERATION, UNIT_STATE_ENUMERATION[]> = {
     [UNIT_STATE_ENUMERATION.CREATED]: [UNIT_STATE_ENUMERATION.CREATED],
-    [UNIT_STATE_ENUMERATION.PICKED_UP]: [UNIT_STATE_ENUMERATION.CREATED, UNIT_STATE_ENUMERATION.PICKED_UP],
+    [UNIT_STATE_ENUMERATION.PICKED_UP]: [
+      UNIT_STATE_ENUMERATION.CREATED,
+      UNIT_STATE_ENUMERATION.PICKED_UP,
+    ],
     [UNIT_STATE_ENUMERATION.IN_TRANSIT]: [
       UNIT_STATE_ENUMERATION.CREATED,
       UNIT_STATE_ENUMERATION.PICKED_UP,

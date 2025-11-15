@@ -86,10 +86,18 @@ describe('GetTrackingHistoryUseCase', () => {
 
       expect(result.checkpoints).toHaveLength(4);
       expect(result.currentState).toBe(UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY);
-      expect(result.checkpoints[0]!.status).toBe(UNIT_STATE_ENUMERATION.CREATED);
-      expect(result.checkpoints[1]!.status).toBe(UNIT_STATE_ENUMERATION.PICKED_UP);
-      expect(result.checkpoints[2]!.status).toBe(UNIT_STATE_ENUMERATION.IN_TRANSIT);
-      expect(result.checkpoints[3]!.status).toBe(UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY);
+      expect(result.checkpoints[0]!.status).toBe(
+        UNIT_STATE_ENUMERATION.CREATED,
+      );
+      expect(result.checkpoints[1]!.status).toBe(
+        UNIT_STATE_ENUMERATION.PICKED_UP,
+      );
+      expect(result.checkpoints[2]!.status).toBe(
+        UNIT_STATE_ENUMERATION.IN_TRANSIT,
+      );
+      expect(result.checkpoints[3]!.status).toBe(
+        UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY,
+      );
     });
 
     it('should return unit with only initial CREATED checkpoint', async () => {
@@ -102,7 +110,9 @@ describe('GetTrackingHistoryUseCase', () => {
 
       expect(result.checkpoints).toHaveLength(1);
       expect(result.currentState).toBe(UNIT_STATE_ENUMERATION.CREATED);
-      expect(result.checkpoints[0]!.status).toBe(UNIT_STATE_ENUMERATION.CREATED);
+      expect(result.checkpoints[0]!.status).toBe(
+        UNIT_STATE_ENUMERATION.CREATED,
+      );
     });
 
     it('should handle units with FAILED_DELIVERY retry flow', async () => {
@@ -110,10 +120,18 @@ describe('GetTrackingHistoryUseCase', () => {
       const unit = Unit.create(trackingId);
 
       unit.addCheckpoint(
-        Checkpoint.create(UNIT_STATE_ENUMERATION.PICKED_UP, 'WAREHOUSE', new Date()),
+        Checkpoint.create(
+          UNIT_STATE_ENUMERATION.PICKED_UP,
+          'WAREHOUSE',
+          new Date(),
+        ),
       );
       unit.addCheckpoint(
-        Checkpoint.create(UNIT_STATE_ENUMERATION.IN_TRANSIT, 'TRUCK', new Date()),
+        Checkpoint.create(
+          UNIT_STATE_ENUMERATION.IN_TRANSIT,
+          'TRUCK',
+          new Date(),
+        ),
       );
       unit.addCheckpoint(
         Checkpoint.create(
@@ -132,7 +150,11 @@ describe('GetTrackingHistoryUseCase', () => {
         ),
       );
       unit.addCheckpoint(
-        Checkpoint.create(UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY, 'VAN', new Date()),
+        Checkpoint.create(
+          UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY,
+          'VAN',
+          new Date(),
+        ),
       );
 
       mockRepository.findByTrackingId.mockResolvedValue(unit);
@@ -173,12 +195,20 @@ describe('GetTrackingHistoryUseCase', () => {
       const unit = Unit.create(trackingId);
 
       unit.addCheckpoint(
-        Checkpoint.create(UNIT_STATE_ENUMERATION.PICKED_UP, 'WAREHOUSE', new Date()),
+        Checkpoint.create(
+          UNIT_STATE_ENUMERATION.PICKED_UP,
+          'WAREHOUSE',
+          new Date(),
+        ),
       );
 
       for (let i = 0; i < 5; i++) {
         unit.addCheckpoint(
-          Checkpoint.create(UNIT_STATE_ENUMERATION.IN_TRANSIT, `TRUCK_${i}`, new Date()),
+          Checkpoint.create(
+            UNIT_STATE_ENUMERATION.IN_TRANSIT,
+            `TRUCK_${i}`,
+            new Date(),
+          ),
         );
         unit.addCheckpoint(
           Checkpoint.create(
@@ -191,13 +221,25 @@ describe('GetTrackingHistoryUseCase', () => {
       }
 
       unit.addCheckpoint(
-        Checkpoint.create(UNIT_STATE_ENUMERATION.IN_TRANSIT, 'TRUCK_FINAL', new Date()),
+        Checkpoint.create(
+          UNIT_STATE_ENUMERATION.IN_TRANSIT,
+          'TRUCK_FINAL',
+          new Date(),
+        ),
       );
       unit.addCheckpoint(
-        Checkpoint.create(UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY, 'VAN_FINAL', new Date()),
+        Checkpoint.create(
+          UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY,
+          'VAN_FINAL',
+          new Date(),
+        ),
       );
       unit.addCheckpoint(
-        Checkpoint.create(UNIT_STATE_ENUMERATION.DELIVERED, 'CUSTOMER', new Date()),
+        Checkpoint.create(
+          UNIT_STATE_ENUMERATION.DELIVERED,
+          'CUSTOMER',
+          new Date(),
+        ),
       );
 
       mockRepository.findByTrackingId.mockResolvedValue(unit);

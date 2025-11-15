@@ -22,7 +22,9 @@ export class Unit {
       INITIAL_CHECKPOINT_MESSAGE_CONSTANT,
     );
 
-    return new Unit(null, trackingId, UNIT_STATE_ENUMERATION.CREATED, [initialCheckpoint]);
+    return new Unit(null, trackingId, UNIT_STATE_ENUMERATION.CREATED, [
+      initialCheckpoint,
+    ]);
   }
 
   addCheckpoint(checkpoint: Checkpoint): void {
@@ -37,8 +39,14 @@ export class Unit {
     this.currentState = checkpoint.status;
   }
 
-  private isValidTransition(from: UNIT_STATE_ENUMERATION, to: UNIT_STATE_ENUMERATION): boolean {
-    const validTransitions: Record<UNIT_STATE_ENUMERATION, UNIT_STATE_ENUMERATION[]> = {
+  private isValidTransition(
+    from: UNIT_STATE_ENUMERATION,
+    to: UNIT_STATE_ENUMERATION,
+  ): boolean {
+    const validTransitions: Record<
+      UNIT_STATE_ENUMERATION,
+      UNIT_STATE_ENUMERATION[]
+    > = {
       [UNIT_STATE_ENUMERATION.CREATED]: [UNIT_STATE_ENUMERATION.PICKED_UP],
       [UNIT_STATE_ENUMERATION.PICKED_UP]: [UNIT_STATE_ENUMERATION.IN_TRANSIT],
       [UNIT_STATE_ENUMERATION.IN_TRANSIT]: [
@@ -50,7 +58,10 @@ export class Unit {
         UNIT_STATE_ENUMERATION.FAILED_DELIVERY,
       ],
       [UNIT_STATE_ENUMERATION.DELIVERED]: [],
-      [UNIT_STATE_ENUMERATION.FAILED_DELIVERY]: [UNIT_STATE_ENUMERATION.RETURNED, UNIT_STATE_ENUMERATION.IN_TRANSIT],
+      [UNIT_STATE_ENUMERATION.FAILED_DELIVERY]: [
+        UNIT_STATE_ENUMERATION.RETURNED,
+        UNIT_STATE_ENUMERATION.IN_TRANSIT,
+      ],
       [UNIT_STATE_ENUMERATION.RETURNED]: [],
     };
 
