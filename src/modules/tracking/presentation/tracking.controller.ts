@@ -16,7 +16,8 @@ import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { LoggerService } from '../../../core/logger/logger.service';
 
 // Application layer
-import { RegisterCheckpointDto } from '../application/dtos/register-checkpoint.dto';
+import { UnitResponseDto } from '../application/dtos/unit-response.dto';
+import { UnitSummaryResponseDto } from '../application/dtos/unit-summary-response.dto';
 import { GetTrackingHistoryUseCase } from '../application/use-cases/get-tracking-history.use-case';
 import { ListUnitsByStateUseCase } from '../application/use-cases/list-units-by-state.use-case';
 
@@ -28,8 +29,7 @@ import { CheckpointProducer } from '../infrastructure/messaging/checkpoint.produ
 
 // Presentation layer
 import { ListUnitsQueryDto } from './dtos/list-units-query.dto';
-import { UnitResponseDto } from './dtos/unit-response.dto';
-import { UnitSummaryResponseDto } from './dtos/unit-summary-response.dto';
+import { RegisterCheckpointDto } from './dtos/register-checkpoint.dto';
 
 @ApiTags('tracking')
 @Controller('api/v1')
@@ -76,11 +76,11 @@ export class TrackingController {
     this.logger.debug(`Retrieving tracking history for: ${trackingId}`);
 
     try {
-      const unit = await this.getTrackingHistoryUseCase.execute(trackingId);
+      const unitDto = await this.getTrackingHistoryUseCase.execute(trackingId);
       this.logger.log(
         `Tracking history retrieved successfully for: ${trackingId}`,
       );
-      return UnitResponseDto.fromEntity(unit);
+      return unitDto;
     } catch (error) {
       if (error instanceof UnitNotFoundError) {
         this.logger.warn(`Unit not found: ${trackingId}`);
@@ -107,13 +107,13 @@ export class TrackingController {
   ): Promise<UnitSummaryResponseDto[]> {
     this.logger.debug(`Listing shipments by state: ${query.status}`);
 
-    const units = await this.listUnitsByStateUseCase.execute(query.status);
+    const unitDtos = await this.listUnitsByStateUseCase.execute(query.status);
 
     this.logger.logWithMetadata('info', 'Shipments listed', {
       status: query.status,
-      count: units.length,
+      count: unitDtos.length,
     });
 
-    return units.map((unit) => UnitSummaryResponseDto.fromEntity(unit));
+    return unitDtos;
   }
 }

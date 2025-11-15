@@ -1,8 +1,10 @@
 // Framework imports
 import { Inject, Injectable } from '@nestjs/common';
 
+// Application layer
+import { UnitResponseDto } from '../dtos/unit-response.dto';
+
 // Domain layer
-import { Unit } from '../../domain/unit.entity';
 import { UnitNotFoundError } from '../../domain/unit.errors';
 import {
   IUnitRepository,
@@ -16,13 +18,13 @@ export class GetTrackingHistoryUseCase {
     private readonly unitRepository: IUnitRepository,
   ) {}
 
-  async execute(trackingId: string): Promise<Unit> {
+  async execute(trackingId: string): Promise<UnitResponseDto> {
     const unit = await this.unitRepository.findByTrackingId(trackingId);
 
     if (!unit) {
       throw new UnitNotFoundError(trackingId);
     }
 
-    return unit;
+    return UnitResponseDto.fromEntity(unit);
   }
 }

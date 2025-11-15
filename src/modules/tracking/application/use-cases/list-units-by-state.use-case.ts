@@ -1,9 +1,11 @@
 // Framework imports
 import { Inject, Injectable } from '@nestjs/common';
 
+// Application layer
+import { UnitSummaryResponseDto } from '../dtos/unit-summary-response.dto';
+
 // Domain layer
 import { UNIT_STATE_ENUMERATION } from '../../domain/unit-state.enumeration';
-import { Unit } from '../../domain/unit.entity';
 import {
   IUnitRepository,
   UNIT_REPOSITORY_TOKEN_CONSTANT,
@@ -16,7 +18,10 @@ export class ListUnitsByStateUseCase {
     private readonly unitRepository: IUnitRepository,
   ) {}
 
-  async execute(state: UNIT_STATE_ENUMERATION): Promise<Unit[]> {
-    return this.unitRepository.findByState(state);
+  async execute(
+    state: UNIT_STATE_ENUMERATION,
+  ): Promise<UnitSummaryResponseDto[]> {
+    const units = await this.unitRepository.findByState(state);
+    return units.map((unit) => UnitSummaryResponseDto.fromEntity(unit));
   }
 }

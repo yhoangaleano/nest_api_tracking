@@ -1,8 +1,8 @@
 // Framework imports
 import { Inject, Injectable } from '@nestjs/common';
 
-// Application layer
-import { RegisterCheckpointDto } from '../dtos/register-checkpoint.dto';
+// Presentation layer
+import { RegisterCheckpointDto } from '../../presentation/dtos/register-checkpoint.dto';
 
 // Domain layer
 import { Checkpoint } from '../../domain/checkpoint.entity';

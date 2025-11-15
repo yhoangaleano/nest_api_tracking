@@ -2,7 +2,7 @@
 import { UNIT_STATE_ENUMERATION } from '../../domain/unit-state.enumeration';
 import { Unit } from '../../domain/unit.entity';
 
-// Presentation layer
+// Application layer
 import { CheckpointResponseDto } from './checkpoint-response.dto';
 
 export class UnitResponseDto {

@@ -1,6 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
-import { RegisterCheckpointDto } from '../dtos/register-checkpoint.dto';
 import { RegisterCheckpointUseCase } from './register-checkpoint.use-case';
 
 import { Unit } from '../../domain/unit.entity';
@@ -10,6 +9,8 @@ import {
   IUnitRepository,
   UNIT_REPOSITORY_TOKEN_CONSTANT,
 } from '../../domain/unit.repository';
+
+import { RegisterCheckpointDto } from '../../presentation/dtos/register-checkpoint.dto';
 
 describe('register checkpoint use case', () => {
   let useCase: RegisterCheckpointUseCase;

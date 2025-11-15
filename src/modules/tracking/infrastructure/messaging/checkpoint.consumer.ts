@@ -6,8 +6,10 @@ import { ConfigService } from '@nestjs/config';
 import { Channel, ConsumeMessage } from 'amqplib';
 
 // Application layer
-import { RegisterCheckpointDto } from '../../application/dtos/register-checkpoint.dto';
 import { RegisterCheckpointUseCase } from '../../application/use-cases/register-checkpoint.use-case';
+
+// Presentation layer
+import { RegisterCheckpointDto } from '../../presentation/dtos/register-checkpoint.dto';
 
 // Domain layer
 import { InvalidStateTransitionError } from '../../domain/unit.errors';

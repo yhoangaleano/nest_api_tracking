@@ -5,8 +5,8 @@ import { ConfigService } from '@nestjs/config';
 // Third-party libraries
 import { Channel } from 'amqplib';
 
-// Application layer
-import { RegisterCheckpointDto } from '../../application/dtos/register-checkpoint.dto';
+// Presentation layer
+import { RegisterCheckpointDto } from '../../presentation/dtos/register-checkpoint.dto';
 
 // Own code imports
 import {

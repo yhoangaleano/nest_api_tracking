@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
+import { UnitResponseDto } from '../dtos/unit-response.dto';
 import { GetTrackingHistoryUseCase } from './get-tracking-history.use-case';
 
 import { Checkpoint } from '../../domain/checkpoint.entity';
@@ -40,7 +41,7 @@ describe('GetTrackingHistoryUseCase', () => {
   });
 
   describe('execute', () => {
-    it('should return unit when tracking ID exists', async () => {
+    it('should return unit DTO when tracking ID exists', async () => {
       const trackingId = 'T-ABC-12345';
       const unit = Unit.create(trackingId);
 
@@ -50,11 +51,12 @@ describe('GetTrackingHistoryUseCase', () => {
 
       expect(mockRepository.findByTrackingId).toHaveBeenCalledWith(trackingId);
       expect(mockRepository.findByTrackingId).toHaveBeenCalledTimes(1);
-      expect(result).toBe(unit);
+      expect(result).toBeInstanceOf(UnitResponseDto);
       expect(result.trackingId).toBe(trackingId);
+      expect(result.currentState).toBe(UNIT_STATE_ENUMERATION.CREATED);
     });
 
-    it('should return unit with complete checkpoint history', async () => {
+    it('should return unit DTO with complete checkpoint history', async () => {
       const trackingId = 'T-ABC-12345';
       const unit = Unit.create(trackingId);
 
@@ -84,11 +86,14 @@ describe('GetTrackingHistoryUseCase', () => {
 
       const result = await useCase.execute(trackingId);
 
+      expect(result).toBeInstanceOf(UnitResponseDto);
       expect(result.checkpoints).toHaveLength(4);
       expect(result.currentState).toBe(UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY);
       expect(result.checkpoints[0]!.status).toBe(
         UNIT_STATE_ENUMERATION.CREATED,
       );
+      expect(result.checkpoints[0]!.timestamp).toBeDefined();
+      expect(typeof result.checkpoints[0]!.timestamp).toBe('string');
       expect(result.checkpoints[1]!.status).toBe(
         UNIT_STATE_ENUMERATION.PICKED_UP,
       );
@@ -100,7 +105,7 @@ describe('GetTrackingHistoryUseCase', () => {
       );
     });
 
-    it('should return unit with only initial CREATED checkpoint', async () => {
+    it('should return unit DTO with only initial CREATED checkpoint', async () => {
       const trackingId = 'T-NEW-99999';
       const unit = Unit.create(trackingId);
 
@@ -108,6 +113,7 @@ describe('GetTrackingHistoryUseCase', () => {
 
       const result = await useCase.execute(trackingId);
 
+      expect(result).toBeInstanceOf(UnitResponseDto);
       expect(result.checkpoints).toHaveLength(1);
       expect(result.currentState).toBe(UNIT_STATE_ENUMERATION.CREATED);
       expect(result.checkpoints[0]!.status).toBe(
@@ -161,6 +167,7 @@ describe('GetTrackingHistoryUseCase', () => {
 
       const result = await useCase.execute(trackingId);
 
+      expect(result).toBeInstanceOf(UnitResponseDto);
       expect(result.currentState).toBe(UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY);
       expect(result.checkpoints).toHaveLength(6);
     });
@@ -246,6 +253,7 @@ describe('GetTrackingHistoryUseCase', () => {
 
       const result = await useCase.execute(trackingId);
 
+      expect(result).toBeInstanceOf(UnitResponseDto);
       expect(result.checkpoints.length).toBe(15);
       expect(result.currentState).toBe(UNIT_STATE_ENUMERATION.DELIVERED);
     });
