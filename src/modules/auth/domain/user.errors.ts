@@ -1,4 +1,4 @@
-import { DomainException } from '../../../core/filters/domain-exception.filter';
+import { DomainException } from '../../../shared/domain/domain.exception';
 
 export class UserNotFoundError extends DomainException {
   constructor(email: string) {

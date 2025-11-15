@@ -1,9 +1,9 @@
-import { UnitState } from './unit-state.enum';
+import { UNIT_STATE_ENUMERATION } from './unit-state.enumeration';
 import { InvalidStateTransitionError, UnitNotFoundError } from './unit.errors';
 import {
   INVALID_STATE_TRANSITION_ERROR_CODE_CONSTANT,
   UNIT_NOT_FOUND_ERROR_CODE_CONSTANT,
-} from '../configs/domain-messages.constants';
+} from './unit.constants';
 
 describe('domain errors', () => {
   describe('UnitNotFoundError', () => {
@@ -41,8 +41,8 @@ describe('domain errors', () => {
 
   describe('InvalidStateTransitionError', () => {
     it('should create error with correct message and code', () => {
-      const fromState = UnitState.CREATED;
-      const toState = UnitState.DELIVERED;
+      const fromState = UNIT_STATE_ENUMERATION.CREATED;
+      const toState = UNIT_STATE_ENUMERATION.DELIVERED;
       const error = new InvalidStateTransitionError(fromState, toState);
 
       expect(error.message).toBe(
@@ -52,15 +52,15 @@ describe('domain errors', () => {
       expect(error.name).toBe('InvalidStateTransitionError');
     });
 
-    it('should handle all UnitState enum combinations', () => {
+    it('should handle all UNIT_STATE_ENUMERATION enum combinations', () => {
       const states = [
-        UnitState.CREATED,
-        UnitState.PICKED_UP,
-        UnitState.IN_TRANSIT,
-        UnitState.OUT_FOR_DELIVERY,
-        UnitState.DELIVERED,
-        UnitState.FAILED_DELIVERY,
-        UnitState.RETURNED,
+        UNIT_STATE_ENUMERATION.CREATED,
+        UNIT_STATE_ENUMERATION.PICKED_UP,
+        UNIT_STATE_ENUMERATION.IN_TRANSIT,
+        UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY,
+        UNIT_STATE_ENUMERATION.DELIVERED,
+        UNIT_STATE_ENUMERATION.FAILED_DELIVERY,
+        UNIT_STATE_ENUMERATION.RETURNED,
       ];
 
       for (const fromState of states) {
@@ -74,8 +74,8 @@ describe('domain errors', () => {
 
     it('should preserve stack trace', () => {
       const error = new InvalidStateTransitionError(
-        UnitState.CREATED,
-        UnitState.DELIVERED,
+        UNIT_STATE_ENUMERATION.CREATED,
+        UNIT_STATE_ENUMERATION.DELIVERED,
       );
 
       expect(error.stack).toBeDefined();

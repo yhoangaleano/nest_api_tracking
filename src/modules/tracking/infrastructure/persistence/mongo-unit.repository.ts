@@ -7,7 +7,7 @@ import { Model } from 'mongoose';
 
 // Domain layer
 import { Checkpoint } from '../../domain/checkpoint.entity';
-import { UnitState } from '../../domain/unit-state.enum';
+import { UNIT_STATE_ENUMERATION } from '../../domain/unit-state.enumeration';
 import { Unit } from '../../domain/unit.entity';
 import { IUnitRepository } from '../../domain/unit.repository';
 
@@ -57,7 +57,7 @@ export class MongoUnitRepository implements IUnitRepository {
     }
   }
 
-  async findByState(state: UnitState): Promise<Unit[]> {
+  async findByState(state: UNIT_STATE_ENUMERATION): Promise<Unit[]> {
     const docs = await this.unitModel.find({ currentState: state }).exec();
     return docs.map((doc) => this.toDomain(doc));
   }

@@ -1,5 +1,5 @@
 // Domain layer
-import { UnitState } from '../../domain/unit-state.enum';
+import { UNIT_STATE_ENUMERATION } from '../../domain/unit-state.enumeration';
 import { Unit } from '../../domain/unit.entity';
 
 // Presentation layer
@@ -8,7 +8,7 @@ import { CheckpointResponseDto } from './checkpoint-response.dto';
 export class UnitResponseDto {
   id!: string | null;
   trackingId!: string;
-  currentState!: UnitState;
+  currentState!: UNIT_STATE_ENUMERATION;
   checkpoints!: CheckpointResponseDto[];
 
   static fromEntity(unit: Unit): UnitResponseDto {

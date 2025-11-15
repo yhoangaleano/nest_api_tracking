@@ -5,14 +5,14 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
 // Domain layer
-import { UnitState } from '../../domain/unit-state.enum';
+import { UNIT_STATE_ENUMERATION } from '../../domain/unit-state.enumeration';
 
 // Own code imports
 import { UNITS_COLLECTION_NAME_CONSTANT } from '../../configs/persistence.constants';
 
 class CheckpointDocument {
-  @Prop({ required: true, enum: UnitState })
-  status!: UnitState;
+  @Prop({ required: true, enum: UNIT_STATE_ENUMERATION })
+  status!: UNIT_STATE_ENUMERATION;
 
   @Prop({ required: true })
   timestamp!: Date;
@@ -29,8 +29,8 @@ export class UnitDocument extends Document {
   @Prop({ required: true, unique: true })
   trackingId!: string;
 
-  @Prop({ required: true, enum: UnitState })
-  currentState!: UnitState;
+  @Prop({ required: true, enum: UNIT_STATE_ENUMERATION })
+  currentState!: UNIT_STATE_ENUMERATION;
 
   @Prop({ type: [CheckpointDocument], required: true })
   checkpoints!: CheckpointDocument[];

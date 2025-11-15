@@ -7,17 +7,7 @@ import {
 import { Request, Response } from 'express';
 
 import { LoggerService } from '../logger/logger.service';
-
-export abstract class DomainException extends Error {
-  constructor(
-    message: string,
-    public readonly code: string,
-  ) {
-    super(message);
-    this.name = this.constructor.name;
-    Error.captureStackTrace(this, this.constructor);
-  }
-}
+import { DomainException } from '../../shared/domain/domain.exception';
 
 @Catch(DomainException)
 export class DomainExceptionFilter implements ExceptionFilter {

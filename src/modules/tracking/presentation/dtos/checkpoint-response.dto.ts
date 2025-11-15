@@ -1,14 +1,14 @@
 // Domain layer
-import { UnitState } from '../../domain/unit-state.enum';
+import { UNIT_STATE_ENUMERATION } from '../../domain/unit-state.enumeration';
 
 export class CheckpointResponseDto {
-  status: UnitState;
+  status: UNIT_STATE_ENUMERATION;
   timestamp: string;
   location: string;
   notes?: string;
 
   constructor(
-    status: UnitState,
+    status: UNIT_STATE_ENUMERATION,
     timestamp: Date,
     location: string,
     notes?: string,

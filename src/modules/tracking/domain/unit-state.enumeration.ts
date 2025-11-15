@@ -1,4 +1,4 @@
-export enum UnitState {
+export enum UNIT_STATE_ENUMERATION {
   CREATED = 'CREATED',
   PICKED_UP = 'PICKED_UP',
   IN_TRANSIT = 'IN_TRANSIT',

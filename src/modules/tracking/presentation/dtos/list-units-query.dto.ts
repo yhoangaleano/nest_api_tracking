@@ -2,10 +2,10 @@
 import { IsEnum, IsNotEmpty } from 'class-validator';
 
 // Domain layer
-import { UnitState } from '../../domain/unit-state.enum';
+import { UNIT_STATE_ENUMERATION } from '../../domain/unit-state.enumeration';
 
 export class ListUnitsQueryDto {
   @IsNotEmpty()
-  @IsEnum(UnitState)
-  status!: UnitState;
+  @IsEnum(UNIT_STATE_ENUMERATION)
+  status!: UNIT_STATE_ENUMERATION;
 }

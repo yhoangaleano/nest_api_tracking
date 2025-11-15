@@ -1,8 +1,8 @@
-import { DomainException } from '../../../core/filters/domain-exception.filter';
+import { DomainException } from '../../../shared/domain/domain.exception';
 import {
   INVALID_STATE_TRANSITION_ERROR_CODE_CONSTANT,
   UNIT_NOT_FOUND_ERROR_CODE_CONSTANT,
-} from '../configs/domain-messages.constants';
+} from './unit.constants';
 
 export class InvalidStateTransitionError extends DomainException {
   constructor(from: string, to: string) {

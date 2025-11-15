@@ -1,15 +1,15 @@
-import { UnitState } from './unit-state.enum';
+import { UNIT_STATE_ENUMERATION } from './unit-state.enumeration';
 
 export class Checkpoint {
   constructor(
-    public readonly status: UnitState,
+    public readonly status: UNIT_STATE_ENUMERATION,
     public readonly timestamp: Date,
     public readonly location: string,
     public readonly notes?: string,
   ) {}
 
   static create(
-    status: UnitState,
+    status: UNIT_STATE_ENUMERATION,
     location: string,
     timestamp: Date,
     notes?: string,

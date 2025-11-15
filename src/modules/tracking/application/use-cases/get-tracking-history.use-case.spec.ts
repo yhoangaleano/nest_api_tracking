@@ -4,7 +4,7 @@ import { GetTrackingHistoryUseCase } from './get-tracking-history.use-case';
 
 import { Checkpoint } from '../../domain/checkpoint.entity';
 import { Unit } from '../../domain/unit.entity';
-import { UnitState } from '../../domain/unit-state.enum';
+import { UNIT_STATE_ENUMERATION } from '../../domain/unit-state.enumeration';
 import { UnitNotFoundError } from '../../domain/unit.errors';
 import {
   IUnitRepository,
@@ -60,21 +60,21 @@ describe('GetTrackingHistoryUseCase', () => {
 
       unit.addCheckpoint(
         Checkpoint.create(
-          UnitState.PICKED_UP,
+          UNIT_STATE_ENUMERATION.PICKED_UP,
           'WAREHOUSE_A',
           new Date('2025-01-12T10:00:00Z'),
         ),
       );
       unit.addCheckpoint(
         Checkpoint.create(
-          UnitState.IN_TRANSIT,
+          UNIT_STATE_ENUMERATION.IN_TRANSIT,
           'TRUCK_A123',
           new Date('2025-01-12T11:00:00Z'),
         ),
       );
       unit.addCheckpoint(
         Checkpoint.create(
-          UnitState.OUT_FOR_DELIVERY,
+          UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY,
           'VAN_B456',
           new Date('2025-01-12T12:00:00Z'),
         ),
@@ -85,11 +85,11 @@ describe('GetTrackingHistoryUseCase', () => {
       const result = await useCase.execute(trackingId);
 
       expect(result.checkpoints).toHaveLength(4);
-      expect(result.currentState).toBe(UnitState.OUT_FOR_DELIVERY);
-      expect(result.checkpoints[0]!.status).toBe(UnitState.CREATED);
-      expect(result.checkpoints[1]!.status).toBe(UnitState.PICKED_UP);
-      expect(result.checkpoints[2]!.status).toBe(UnitState.IN_TRANSIT);
-      expect(result.checkpoints[3]!.status).toBe(UnitState.OUT_FOR_DELIVERY);
+      expect(result.currentState).toBe(UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY);
+      expect(result.checkpoints[0]!.status).toBe(UNIT_STATE_ENUMERATION.CREATED);
+      expect(result.checkpoints[1]!.status).toBe(UNIT_STATE_ENUMERATION.PICKED_UP);
+      expect(result.checkpoints[2]!.status).toBe(UNIT_STATE_ENUMERATION.IN_TRANSIT);
+      expect(result.checkpoints[3]!.status).toBe(UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY);
     });
 
     it('should return unit with only initial CREATED checkpoint', async () => {
@@ -101,8 +101,8 @@ describe('GetTrackingHistoryUseCase', () => {
       const result = await useCase.execute(trackingId);
 
       expect(result.checkpoints).toHaveLength(1);
-      expect(result.currentState).toBe(UnitState.CREATED);
-      expect(result.checkpoints[0]!.status).toBe(UnitState.CREATED);
+      expect(result.currentState).toBe(UNIT_STATE_ENUMERATION.CREATED);
+      expect(result.checkpoints[0]!.status).toBe(UNIT_STATE_ENUMERATION.CREATED);
     });
 
     it('should handle units with FAILED_DELIVERY retry flow', async () => {
@@ -110,14 +110,14 @@ describe('GetTrackingHistoryUseCase', () => {
       const unit = Unit.create(trackingId);
 
       unit.addCheckpoint(
-        Checkpoint.create(UnitState.PICKED_UP, 'WAREHOUSE', new Date()),
+        Checkpoint.create(UNIT_STATE_ENUMERATION.PICKED_UP, 'WAREHOUSE', new Date()),
       );
       unit.addCheckpoint(
-        Checkpoint.create(UnitState.IN_TRANSIT, 'TRUCK', new Date()),
+        Checkpoint.create(UNIT_STATE_ENUMERATION.IN_TRANSIT, 'TRUCK', new Date()),
       );
       unit.addCheckpoint(
         Checkpoint.create(
-          UnitState.FAILED_DELIVERY,
+          UNIT_STATE_ENUMERATION.FAILED_DELIVERY,
           'CUSTOMER',
           new Date(),
           'First attempt failed',
@@ -125,21 +125,21 @@ describe('GetTrackingHistoryUseCase', () => {
       );
       unit.addCheckpoint(
         Checkpoint.create(
-          UnitState.IN_TRANSIT,
+          UNIT_STATE_ENUMERATION.IN_TRANSIT,
           'TRUCK',
           new Date(),
           'Second attempt',
         ),
       );
       unit.addCheckpoint(
-        Checkpoint.create(UnitState.OUT_FOR_DELIVERY, 'VAN', new Date()),
+        Checkpoint.create(UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY, 'VAN', new Date()),
       );
 
       mockRepository.findByTrackingId.mockResolvedValue(unit);
 
       const result = await useCase.execute(trackingId);
 
-      expect(result.currentState).toBe(UnitState.OUT_FOR_DELIVERY);
+      expect(result.currentState).toBe(UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY);
       expect(result.checkpoints).toHaveLength(6);
     });
 
@@ -173,16 +173,16 @@ describe('GetTrackingHistoryUseCase', () => {
       const unit = Unit.create(trackingId);
 
       unit.addCheckpoint(
-        Checkpoint.create(UnitState.PICKED_UP, 'WAREHOUSE', new Date()),
+        Checkpoint.create(UNIT_STATE_ENUMERATION.PICKED_UP, 'WAREHOUSE', new Date()),
       );
 
       for (let i = 0; i < 5; i++) {
         unit.addCheckpoint(
-          Checkpoint.create(UnitState.IN_TRANSIT, `TRUCK_${i}`, new Date()),
+          Checkpoint.create(UNIT_STATE_ENUMERATION.IN_TRANSIT, `TRUCK_${i}`, new Date()),
         );
         unit.addCheckpoint(
           Checkpoint.create(
-            UnitState.FAILED_DELIVERY,
+            UNIT_STATE_ENUMERATION.FAILED_DELIVERY,
             `CUSTOMER_${i}`,
             new Date(),
             `Attempt ${i + 1} failed`,
@@ -191,13 +191,13 @@ describe('GetTrackingHistoryUseCase', () => {
       }
 
       unit.addCheckpoint(
-        Checkpoint.create(UnitState.IN_TRANSIT, 'TRUCK_FINAL', new Date()),
+        Checkpoint.create(UNIT_STATE_ENUMERATION.IN_TRANSIT, 'TRUCK_FINAL', new Date()),
       );
       unit.addCheckpoint(
-        Checkpoint.create(UnitState.OUT_FOR_DELIVERY, 'VAN_FINAL', new Date()),
+        Checkpoint.create(UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY, 'VAN_FINAL', new Date()),
       );
       unit.addCheckpoint(
-        Checkpoint.create(UnitState.DELIVERED, 'CUSTOMER', new Date()),
+        Checkpoint.create(UNIT_STATE_ENUMERATION.DELIVERED, 'CUSTOMER', new Date()),
       );
 
       mockRepository.findByTrackingId.mockResolvedValue(unit);
@@ -205,7 +205,7 @@ describe('GetTrackingHistoryUseCase', () => {
       const result = await useCase.execute(trackingId);
 
       expect(result.checkpoints.length).toBe(15);
-      expect(result.currentState).toBe(UnitState.DELIVERED);
+      expect(result.currentState).toBe(UNIT_STATE_ENUMERATION.DELIVERED);
     });
   });
 });

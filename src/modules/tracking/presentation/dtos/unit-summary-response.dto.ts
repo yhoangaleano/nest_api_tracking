@@ -1,11 +1,11 @@
 // Domain layer
-import { UnitState } from '../../domain/unit-state.enum';
+import { UNIT_STATE_ENUMERATION } from '../../domain/unit-state.enumeration';
 import { Unit } from '../../domain/unit.entity';
 
 export class UnitSummaryResponseDto {
   id!: string | null;
   trackingId!: string;
-  currentState!: UnitState;
+  currentState!: UNIT_STATE_ENUMERATION;
 
   static fromEntity(unit: Unit): UnitSummaryResponseDto {
     const dto = new UnitSummaryResponseDto();
