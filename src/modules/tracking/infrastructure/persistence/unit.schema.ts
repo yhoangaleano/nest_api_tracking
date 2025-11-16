@@ -29,7 +29,7 @@ export class UnitDocument extends Document {
   @Prop({ required: true, unique: true })
   trackingId!: string;
 
-  @Prop({ required: true, enum: UNIT_STATE_ENUMERATION })
+  @Prop({ type: String, required: true, enum: UNIT_STATE_ENUMERATION })
   currentState!: UNIT_STATE_ENUMERATION;
 
   @Prop({ type: [CheckpointDocument], required: true })

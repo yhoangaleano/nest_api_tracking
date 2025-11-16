@@ -2,17 +2,19 @@
 import { Provider } from '@nestjs/common';
 
 // Application layer
-import { GetTrackingHistoryUseCase } from '../../application/use-cases/get-tracking-history.use-case';
-import { ListUnitsByStateUseCase } from '../../application/use-cases/list-units-by-state.use-case';
-import { RegisterCheckpointUseCase } from '../../application/use-cases/register-checkpoint.use-case';
+import {
+  GetTrackingHistoryUseCase,
+  ListUnitsByStateUseCase,
+  RegisterCheckpointUseCase,
+} from '../../application/use-cases';
 
 // Domain layer
-import { IUnitRepository } from '../../domain';
-import { UNIT_REPOSITORY_TOKEN_CONSTANT } from '../../domain/repositories';
 import {
+  IUnitRepository,
   GET_TRACKING_HISTORY_USE_CASE_TOKEN,
   LIST_UNITS_BY_STATE_USE_CASE_TOKEN,
   REGISTER_CHECKPOINT_USE_CASE_TOKEN,
+  UNIT_REPOSITORY_TOKEN_CONSTANT,
 } from '../../domain';
 
 export const USE_CASE_PROVIDERS: Provider[] = [
