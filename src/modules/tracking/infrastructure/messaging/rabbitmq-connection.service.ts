@@ -5,6 +5,10 @@ import { ConfigService } from '@nestjs/config';
 // Third-party libraries
 import { Channel, ChannelModel, connect } from 'amqplib';
 
+// Own code imports
+import { QueueOptionsType } from './types';
+import { DEFAULT_QUEUE_OPTIONS_CONSTANT } from './configs';
+
 /**
  * Shared RabbitMQ connection service
  * Manages connection and channel creation for producers and consumers
@@ -54,7 +58,7 @@ export class RabbitMQConnectionService implements OnModuleDestroy {
   async assertQueue(
     channel: Channel,
     queueName: string,
-    options: { durable: boolean } = { durable: true },
+    options: QueueOptionsType = DEFAULT_QUEUE_OPTIONS_CONSTANT,
   ): Promise<void> {
     await channel.assertQueue(queueName, options);
   }
