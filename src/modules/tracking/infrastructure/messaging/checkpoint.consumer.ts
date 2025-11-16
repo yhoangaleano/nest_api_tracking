@@ -5,15 +5,14 @@ import { ConfigService } from '@nestjs/config';
 // Third-party libraries
 import { Channel, ConsumeMessage } from 'amqplib';
 
-// Application layer
-import { RegisterCheckpointInput } from '../../application/dtos/input/register-checkpoint.input';
+// Domain layer
 import {
+  CheckpointData,
+  InvalidStateTransitionError,
   IRegisterCheckpointUseCase,
   REGISTER_CHECKPOINT_USE_CASE_TOKEN,
-} from '../../application/use-cases/interfaces';
-
-// Domain layer
-import { InvalidStateTransitionError } from '../../domain';
+} from '../../domain';
+import { UNIT_STATE_ENUMERATION } from '../../domain/configs/unit-state.enum';
 
 // Own code imports
 import {
@@ -92,9 +91,24 @@ export class CheckpointConsumer implements OnModuleInit {
 
     try {
       const content = msg.content.toString();
-      const checkpoint = JSON.parse(content) as RegisterCheckpointInput;
+      const plainObject = JSON.parse(content) as {
+        trackingId: string;
+        status: UNIT_STATE_ENUMERATION;
+        location: string;
+        timestamp: string;
+        notes?: string;
+      };
 
-      await this.registerCheckpointUseCase.execute(checkpoint);
+      // Deserialize directly to Value Object
+      const checkpointData = CheckpointData.create(
+        plainObject.trackingId,
+        plainObject.status,
+        plainObject.location,
+        plainObject.timestamp,
+        plainObject.notes,
+      );
+
+      await this.registerCheckpointUseCase.execute(checkpointData);
       this.channel.ack(msg);
     } catch (error) {
       console.error('[Consumer] Error processing message:', error);

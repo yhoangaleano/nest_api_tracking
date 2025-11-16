@@ -1,8 +1,8 @@
-import { RegisterCheckpointInput } from '../dtos/input/register-checkpoint.input';
 import { RegisterCheckpointUseCase } from './register-checkpoint.use-case';
 
 import {
   Unit,
+  CheckpointData,
   InvalidStateTransitionError,
   IUnitRepository,
 } from '../../domain';
@@ -29,24 +29,24 @@ describe('register checkpoint use case', () => {
 
   describe('execute', () => {
     it('should create new unit when tracking ID does not exist', async () => {
-      const input: RegisterCheckpointInput = {
-        trackingId: 'T-NEW-12345',
-        status: UNIT_STATE_ENUMERATION.PICKED_UP,
-        location: 'ORIGIN_WAREHOUSE',
-        timestamp: new Date().toISOString(),
-      };
+      const checkpointData = CheckpointData.create(
+        'TRK-12345',
+        UNIT_STATE_ENUMERATION.PICKED_UP,
+        'ORIGIN_WAREHOUSE',
+        new Date().toISOString(),
+      );
 
       mockRepository.findByTrackingId.mockResolvedValue(null);
       mockRepository.save.mockImplementation((unit) => Promise.resolve(unit));
 
-      await useCase.execute(input);
+      await useCase.execute(checkpointData);
 
       expect(mockRepository.findByTrackingId).toHaveBeenCalledWith(
-        input.trackingId,
+        checkpointData.trackingId,
       );
       expect(mockRepository.save).toHaveBeenCalledTimes(1);
       const savedUnit = mockRepository.save.mock.calls[0]![0];
-      expect(savedUnit.trackingId).toBe(input.trackingId);
+      expect(savedUnit.trackingId).toBe(checkpointData.trackingId);
       expect(savedUnit.currentState).toBe(UNIT_STATE_ENUMERATION.PICKED_UP);
     });
 
@@ -54,17 +54,17 @@ describe('register checkpoint use case', () => {
       const trackingId = 'T-ABC-12345';
       const existingUnit = Unit.create(trackingId);
 
-      const input: RegisterCheckpointInput = {
+      const checkpointData = CheckpointData.create(
         trackingId,
-        status: UNIT_STATE_ENUMERATION.PICKED_UP,
-        location: 'WAREHOUSE_A',
-        timestamp: new Date().toISOString(),
-      };
+        UNIT_STATE_ENUMERATION.PICKED_UP,
+        'WAREHOUSE_A',
+        new Date().toISOString(),
+      );
 
       mockRepository.findByTrackingId.mockResolvedValue(existingUnit);
       mockRepository.save.mockImplementation((unit) => Promise.resolve(unit));
 
-      await useCase.execute(input);
+      await useCase.execute(checkpointData);
 
       expect(mockRepository.findByTrackingId).toHaveBeenCalledWith(trackingId);
       expect(mockRepository.save).toHaveBeenCalledTimes(1);
@@ -84,23 +84,27 @@ describe('register checkpoint use case', () => {
         return Promise.resolve(unit);
       });
 
-      await useCase.execute({
-        trackingId,
-        status: UNIT_STATE_ENUMERATION.PICKED_UP,
-        location: 'WAREHOUSE_A',
-        timestamp: new Date().toISOString(),
-      });
+      await useCase.execute(
+        CheckpointData.create(
+          trackingId,
+          UNIT_STATE_ENUMERATION.PICKED_UP,
+          'WAREHOUSE_A',
+          new Date().toISOString(),
+        ),
+      );
 
       expect(currentUnit.currentState).toBe(UNIT_STATE_ENUMERATION.PICKED_UP);
 
       mockRepository.findByTrackingId.mockResolvedValue(currentUnit);
 
-      await useCase.execute({
-        trackingId,
-        status: UNIT_STATE_ENUMERATION.IN_TRANSIT,
-        location: 'TRUCK_A123',
-        timestamp: new Date().toISOString(),
-      });
+      await useCase.execute(
+        CheckpointData.create(
+          trackingId,
+          UNIT_STATE_ENUMERATION.IN_TRANSIT,
+          'TRUCK_A123',
+          new Date().toISOString(),
+        ),
+      );
 
       expect(currentUnit.currentState).toBe(UNIT_STATE_ENUMERATION.IN_TRANSIT);
       expect(currentUnit.checkpoints).toHaveLength(3);
@@ -114,13 +118,15 @@ describe('register checkpoint use case', () => {
       mockRepository.findByTrackingId.mockResolvedValue(existingUnit);
       mockRepository.save.mockImplementation((unit) => Promise.resolve(unit));
 
-      await useCase.execute({
-        trackingId,
-        status: UNIT_STATE_ENUMERATION.PICKED_UP,
-        location: 'WAREHOUSE_A',
-        timestamp: new Date().toISOString(),
-        notes,
-      });
+      await useCase.execute(
+        CheckpointData.create(
+          trackingId,
+          UNIT_STATE_ENUMERATION.PICKED_UP,
+          'WAREHOUSE_A',
+          new Date().toISOString(),
+          notes,
+        ),
+      );
 
       const savedUnit = mockRepository.save.mock.calls[0]![0];
       const addedCheckpoint =
@@ -135,14 +141,14 @@ describe('register checkpoint use case', () => {
 
       mockRepository.findByTrackingId.mockResolvedValue(existingUnit);
 
-      const input: RegisterCheckpointInput = {
+      const checkpointData = CheckpointData.create(
         trackingId,
-        status: UNIT_STATE_ENUMERATION.DELIVERED,
-        location: 'CUSTOMER_ADDRESS',
-        timestamp: new Date().toISOString(),
-      };
+        UNIT_STATE_ENUMERATION.DELIVERED,
+        'CUSTOMER_ADDRESS',
+        new Date().toISOString(),
+      );
 
-      await expect(useCase.execute(input)).rejects.toThrow(
+      await expect(useCase.execute(checkpointData)).rejects.toThrow(
         InvalidStateTransitionError,
       );
 
@@ -150,18 +156,18 @@ describe('register checkpoint use case', () => {
     });
 
     it('should handle repository findByTrackingId errors', async () => {
-      const input: RegisterCheckpointInput = {
-        trackingId: 'T-ABC-12345',
-        status: UNIT_STATE_ENUMERATION.PICKED_UP,
-        location: 'WAREHOUSE_A',
-        timestamp: new Date().toISOString(),
-      };
+      const checkpointData = CheckpointData.create(
+        'T-ABC-12345',
+        UNIT_STATE_ENUMERATION.PICKED_UP,
+        'WAREHOUSE_A',
+        new Date().toISOString(),
+      );
 
       mockRepository.findByTrackingId.mockRejectedValue(
         new Error('Database connection failed'),
       );
 
-      await expect(useCase.execute(input)).rejects.toThrow(
+      await expect(useCase.execute(checkpointData)).rejects.toThrow(
         'Database connection failed',
       );
 
@@ -175,14 +181,14 @@ describe('register checkpoint use case', () => {
       mockRepository.findByTrackingId.mockResolvedValue(existingUnit);
       mockRepository.save.mockRejectedValue(new Error('Database write failed'));
 
-      const input: RegisterCheckpointInput = {
+      const checkpointData = CheckpointData.create(
         trackingId,
-        status: UNIT_STATE_ENUMERATION.PICKED_UP,
-        location: 'WAREHOUSE_A',
-        timestamp: new Date().toISOString(),
-      };
+        UNIT_STATE_ENUMERATION.PICKED_UP,
+        'WAREHOUSE_A',
+        new Date().toISOString(),
+      );
 
-      await expect(useCase.execute(input)).rejects.toThrow(
+      await expect(useCase.execute(checkpointData)).rejects.toThrow(
         'Database write failed',
       );
     });
@@ -195,12 +201,14 @@ describe('register checkpoint use case', () => {
       mockRepository.findByTrackingId.mockResolvedValue(existingUnit);
       mockRepository.save.mockImplementation((unit) => Promise.resolve(unit));
 
-      await useCase.execute({
-        trackingId,
-        status: UNIT_STATE_ENUMERATION.PICKED_UP,
-        location: 'WAREHOUSE_A',
-        timestamp: isoTimestamp,
-      });
+      await useCase.execute(
+        CheckpointData.create(
+          trackingId,
+          UNIT_STATE_ENUMERATION.PICKED_UP,
+          'WAREHOUSE_A',
+          isoTimestamp,
+        ),
+      );
 
       const savedUnit = mockRepository.save.mock.calls[0]![0];
       const addedCheckpoint =
@@ -235,12 +243,14 @@ describe('register checkpoint use case', () => {
       ];
 
       for (let i = 0; i < timestamps.length; i++) {
-        await useCase.execute({
-          trackingId,
-          status: states[i]!,
-          location: 'WAREHOUSE_A',
-          timestamp: timestamps[i]!,
-        });
+        await useCase.execute(
+          CheckpointData.create(
+            trackingId,
+            states[i]!,
+            'WAREHOUSE_A',
+            timestamps[i]!,
+          ),
+        );
       }
 
       expect(mockRepository.save).toHaveBeenCalledTimes(3);
@@ -258,42 +268,50 @@ describe('register checkpoint use case', () => {
         return Promise.resolve(unit);
       });
 
-      await useCase.execute({
-        trackingId,
-        status: UNIT_STATE_ENUMERATION.PICKED_UP,
-        location: 'WAREHOUSE_A',
-        timestamp: new Date('2025-01-12T09:00:00Z').toISOString(),
-      });
+      await useCase.execute(
+        CheckpointData.create(
+          trackingId,
+          UNIT_STATE_ENUMERATION.PICKED_UP,
+          'WAREHOUSE_A',
+          new Date('2025-01-12T09:00:00Z').toISOString(),
+        ),
+      );
       expect((currentUnit as unknown as Unit).currentState).toBe(
         UNIT_STATE_ENUMERATION.PICKED_UP,
       );
 
-      await useCase.execute({
-        trackingId,
-        status: UNIT_STATE_ENUMERATION.IN_TRANSIT,
-        location: 'TRUCK_A123',
-        timestamp: new Date('2025-01-12T10:00:00Z').toISOString(),
-      });
+      await useCase.execute(
+        CheckpointData.create(
+          trackingId,
+          UNIT_STATE_ENUMERATION.IN_TRANSIT,
+          'TRUCK_A123',
+          new Date('2025-01-12T10:00:00Z').toISOString(),
+        ),
+      );
       expect((currentUnit as unknown as Unit).currentState).toBe(
         UNIT_STATE_ENUMERATION.IN_TRANSIT,
       );
 
-      await useCase.execute({
-        trackingId,
-        status: UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY,
-        location: 'VAN_B456',
-        timestamp: new Date('2025-01-12T11:00:00Z').toISOString(),
-      });
+      await useCase.execute(
+        CheckpointData.create(
+          trackingId,
+          UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY,
+          'VAN_B456',
+          new Date('2025-01-12T11:00:00Z').toISOString(),
+        ),
+      );
       expect((currentUnit as unknown as Unit).currentState).toBe(
         UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY,
       );
 
-      await useCase.execute({
-        trackingId,
-        status: UNIT_STATE_ENUMERATION.DELIVERED,
-        location: 'CUSTOMER_ADDRESS',
-        timestamp: new Date('2025-01-12T12:00:00Z').toISOString(),
-      });
+      await useCase.execute(
+        CheckpointData.create(
+          trackingId,
+          UNIT_STATE_ENUMERATION.DELIVERED,
+          'CUSTOMER_ADDRESS',
+          new Date('2025-01-12T12:00:00Z').toISOString(),
+        ),
+      );
       expect((currentUnit as unknown as Unit).currentState).toBe(
         UNIT_STATE_ENUMERATION.DELIVERED,
       );
@@ -312,36 +330,44 @@ describe('register checkpoint use case', () => {
         return Promise.resolve(unit);
       });
 
-      await useCase.execute({
-        trackingId,
-        status: UNIT_STATE_ENUMERATION.PICKED_UP,
-        location: 'WAREHOUSE',
-        timestamp: new Date().toISOString(),
-      });
-      await useCase.execute({
-        trackingId,
-        status: UNIT_STATE_ENUMERATION.IN_TRANSIT,
-        location: 'TRUCK',
-        timestamp: new Date().toISOString(),
-      });
+      await useCase.execute(
+        CheckpointData.create(
+          trackingId,
+          UNIT_STATE_ENUMERATION.PICKED_UP,
+          'WAREHOUSE',
+          new Date().toISOString(),
+        ),
+      );
+      await useCase.execute(
+        CheckpointData.create(
+          trackingId,
+          UNIT_STATE_ENUMERATION.IN_TRANSIT,
+          'TRUCK',
+          new Date().toISOString(),
+        ),
+      );
 
-      await useCase.execute({
-        trackingId,
-        status: UNIT_STATE_ENUMERATION.FAILED_DELIVERY,
-        location: 'CUSTOMER_ADDRESS',
-        timestamp: new Date().toISOString(),
-        notes: 'Customer not available',
-      });
+      await useCase.execute(
+        CheckpointData.create(
+          trackingId,
+          UNIT_STATE_ENUMERATION.FAILED_DELIVERY,
+          'CUSTOMER_ADDRESS',
+          new Date().toISOString(),
+          'Customer not available',
+        ),
+      );
       expect((currentUnit as unknown as Unit).currentState).toBe(
         UNIT_STATE_ENUMERATION.FAILED_DELIVERY,
       );
 
-      await useCase.execute({
-        trackingId,
-        status: UNIT_STATE_ENUMERATION.RETURNED,
-        location: 'WAREHOUSE',
-        timestamp: new Date().toISOString(),
-      });
+      await useCase.execute(
+        CheckpointData.create(
+          trackingId,
+          UNIT_STATE_ENUMERATION.RETURNED,
+          'WAREHOUSE',
+          new Date().toISOString(),
+        ),
+      );
       expect((currentUnit as unknown as Unit).currentState).toBe(
         UNIT_STATE_ENUMERATION.RETURNED,
       );

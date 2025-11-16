@@ -1,20 +1,22 @@
-// Application layer
-import { UnitResponseOutput } from '../dtos/output/unit-response.output';
-import { IGetTrackingHistoryUseCase } from './interfaces/get-tracking-history.interface';
-
 // Domain layer
-import { UnitNotFoundError, IUnitRepository } from '../../domain';
+import {
+  Unit,
+  TrackingId,
+  UnitNotFoundError,
+  IUnitRepository,
+  IGetTrackingHistoryUseCase,
+} from '../../domain';
 
 export class GetTrackingHistoryUseCase implements IGetTrackingHistoryUseCase {
   constructor(private readonly unitRepository: IUnitRepository) {}
 
-  async execute(trackingId: string): Promise<UnitResponseOutput> {
-    const unit = await this.unitRepository.findByTrackingId(trackingId);
+  async execute(trackingId: TrackingId): Promise<Unit> {
+    const unit = await this.unitRepository.findByTrackingId(trackingId.value);
 
     if (!unit) {
-      throw new UnitNotFoundError(trackingId);
+      throw new UnitNotFoundError(trackingId.value);
     }
 
-    return UnitResponseOutput.fromEntity(unit);
+    return unit;
   }
 }

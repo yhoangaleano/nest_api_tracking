@@ -1,9 +1,11 @@
-import { UnitResponseOutput } from '../dtos/output/unit-response.output';
+// Application layer
 import { GetTrackingHistoryUseCase } from './get-tracking-history.use-case';
 
+// Domain layer
 import {
   Checkpoint,
   Unit,
+  TrackingId,
   UnitNotFoundError,
   IUnitRepository,
 } from '../../domain';
@@ -29,24 +31,28 @@ describe('GetTrackingHistoryUseCase', () => {
   });
 
   describe('execute', () => {
-    it('should return unit DTO when tracking ID exists', async () => {
-      const trackingId = 'T-ABC-12345';
-      const unit = Unit.create(trackingId);
+    it('should return unit entity when tracking ID exists', async () => {
+      const trackingIdStr = 'TRK-12345';
+      const trackingId = TrackingId.create(trackingIdStr);
+      const unit = Unit.create(trackingIdStr);
 
       mockRepository.findByTrackingId.mockResolvedValue(unit);
 
       const result = await useCase.execute(trackingId);
 
-      expect(mockRepository.findByTrackingId).toHaveBeenCalledWith(trackingId);
+      expect(mockRepository.findByTrackingId).toHaveBeenCalledWith(
+        trackingIdStr,
+      );
       expect(mockRepository.findByTrackingId).toHaveBeenCalledTimes(1);
-      expect(result).toBeInstanceOf(UnitResponseOutput);
-      expect(result.trackingId).toBe(trackingId);
+      expect(result).toBeInstanceOf(Unit);
+      expect(result.trackingId).toBe(trackingIdStr);
       expect(result.currentState).toBe(UNIT_STATE_ENUMERATION.CREATED);
     });
 
-    it('should return unit DTO with complete checkpoint history', async () => {
-      const trackingId = 'T-ABC-12345';
-      const unit = Unit.create(trackingId);
+    it('should return unit entity with complete checkpoint history', async () => {
+      const trackingIdStr = 'TRK-12345';
+      const trackingId = TrackingId.create(trackingIdStr);
+      const unit = Unit.create(trackingIdStr);
 
       unit.addCheckpoint(
         Checkpoint.create(
@@ -74,14 +80,14 @@ describe('GetTrackingHistoryUseCase', () => {
 
       const result = await useCase.execute(trackingId);
 
-      expect(result).toBeInstanceOf(UnitResponseOutput);
+      expect(result).toBeInstanceOf(Unit);
       expect(result.checkpoints).toHaveLength(4);
       expect(result.currentState).toBe(UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY);
       expect(result.checkpoints[0]!.status).toBe(
         UNIT_STATE_ENUMERATION.CREATED,
       );
       expect(result.checkpoints[0]!.timestamp).toBeDefined();
-      expect(typeof result.checkpoints[0]!.timestamp).toBe('string');
+      expect(result.checkpoints[0]!.timestamp).toBeInstanceOf(Date);
       expect(result.checkpoints[1]!.status).toBe(
         UNIT_STATE_ENUMERATION.PICKED_UP,
       );
@@ -93,15 +99,16 @@ describe('GetTrackingHistoryUseCase', () => {
       );
     });
 
-    it('should return unit DTO with only initial CREATED checkpoint', async () => {
-      const trackingId = 'T-NEW-99999';
-      const unit = Unit.create(trackingId);
+    it('should return unit entity with only initial CREATED checkpoint', async () => {
+      const trackingIdStr = 'TRK-99999';
+      const trackingId = TrackingId.create(trackingIdStr);
+      const unit = Unit.create(trackingIdStr);
 
       mockRepository.findByTrackingId.mockResolvedValue(unit);
 
       const result = await useCase.execute(trackingId);
 
-      expect(result).toBeInstanceOf(UnitResponseOutput);
+      expect(result).toBeInstanceOf(Unit);
       expect(result.checkpoints).toHaveLength(1);
       expect(result.currentState).toBe(UNIT_STATE_ENUMERATION.CREATED);
       expect(result.checkpoints[0]!.status).toBe(
@@ -110,8 +117,9 @@ describe('GetTrackingHistoryUseCase', () => {
     });
 
     it('should handle units with FAILED_DELIVERY retry flow', async () => {
-      const trackingId = 'T-RETRY-222';
-      const unit = Unit.create(trackingId);
+      const trackingIdStr = 'TRK-00222';
+      const trackingId = TrackingId.create(trackingIdStr);
+      const unit = Unit.create(trackingIdStr);
 
       unit.addCheckpoint(
         Checkpoint.create(
@@ -155,13 +163,14 @@ describe('GetTrackingHistoryUseCase', () => {
 
       const result = await useCase.execute(trackingId);
 
-      expect(result).toBeInstanceOf(UnitResponseOutput);
+      expect(result).toBeInstanceOf(Unit);
       expect(result.currentState).toBe(UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY);
       expect(result.checkpoints).toHaveLength(6);
     });
 
     it('should throw UnitNotFoundError when tracking ID does not exist', async () => {
-      const trackingId = 'T-XXX-99999';
+      const trackingIdStr = 'TRK-99999';
+      const trackingId = TrackingId.create(trackingIdStr);
 
       mockRepository.findByTrackingId.mockResolvedValue(null);
 
@@ -169,12 +178,13 @@ describe('GetTrackingHistoryUseCase', () => {
         UnitNotFoundError,
       );
       await expect(useCase.execute(trackingId)).rejects.toThrow(
-        `Unit with tracking ID ${trackingId} not found`,
+        `Unit with tracking ID ${trackingIdStr} not found`,
       );
     });
 
     it('should handle repository errors', async () => {
-      const trackingId = 'T-ERR-333';
+      const trackingIdStr = 'TRK-00333';
+      const trackingId = TrackingId.create(trackingIdStr);
 
       mockRepository.findByTrackingId.mockRejectedValue(
         new Error('Database connection failed'),
@@ -186,8 +196,9 @@ describe('GetTrackingHistoryUseCase', () => {
     });
 
     it('should handle unit with many checkpoints', async () => {
-      const trackingId = 'T-MANY-666';
-      const unit = Unit.create(trackingId);
+      const trackingIdStr = 'TRK-00666';
+      const trackingId = TrackingId.create(trackingIdStr);
+      const unit = Unit.create(trackingIdStr);
 
       unit.addCheckpoint(
         Checkpoint.create(
@@ -241,7 +252,7 @@ describe('GetTrackingHistoryUseCase', () => {
 
       const result = await useCase.execute(trackingId);
 
-      expect(result).toBeInstanceOf(UnitResponseOutput);
+      expect(result).toBeInstanceOf(Unit);
       expect(result.checkpoints.length).toBe(15);
       expect(result.currentState).toBe(UNIT_STATE_ENUMERATION.DELIVERED);
     });

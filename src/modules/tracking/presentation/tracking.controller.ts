@@ -17,26 +17,32 @@ import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { LoggerService } from '../../../core/logger/logger.service';
 
 // Application layer
-import { RegisterCheckpointInput } from '../application/dtos/input/register-checkpoint.input';
-import { UnitResponseOutput } from '../application/dtos/output/unit-response.output';
-import { UnitSummaryResponseOutput } from '../application/dtos/output/unit-summary-response.output';
-import {
-  GET_TRACKING_HISTORY_USE_CASE_TOKEN,
-  LIST_UNITS_BY_STATE_USE_CASE_TOKEN,
-  IGetTrackingHistoryUseCase,
-  IListUnitsByStateUseCase,
-} from '../application/use-cases/interfaces';
 import {
   ICheckpointProducer,
   CHECKPOINT_PRODUCER_TOKEN,
 } from '../application/messaging/checkpoint-producer.interface';
 
-// Domain layer
-import { UnitNotFoundError } from '../domain';
-
 // Presentation layer
 import { ListUnitsQueryDto } from './dtos/list-units-query.dto';
 import { RegisterCheckpointDto } from './dtos/register-checkpoint.dto';
+import { UnitResponseDto } from './dtos/output/unit-response.dto';
+import { UnitSummaryResponseDto } from './dtos/output/unit-summary-response.dto';
+import {
+  CheckpointDataMapper,
+  TrackingIdMapper,
+  UnitStateQueryMapper,
+  UnitResponseMapper,
+  UnitSummaryResponseMapper,
+} from './mappers';
+
+// Domain layer
+import {
+  UnitNotFoundError,
+  IGetTrackingHistoryUseCase,
+  IListUnitsByStateUseCase,
+  GET_TRACKING_HISTORY_USE_CASE_TOKEN,
+  LIST_UNITS_BY_STATE_USE_CASE_TOKEN,
+} from '../domain';
 
 @ApiTags('tracking')
 @Controller('api/v1')
@@ -65,15 +71,10 @@ export class TrackingController {
       location: dto.location,
     });
 
-    const input: RegisterCheckpointInput = {
-      trackingId: dto.trackingId,
-      status: dto.status,
-      location: dto.location,
-      timestamp: dto.timestamp,
-      notes: dto.notes,
-    };
+    // Convert DTO to Value Object using mapper
+    const checkpointData = CheckpointDataMapper.toValueObject(dto);
 
-    this.checkpointProducer.publish(input);
+    this.checkpointProducer.publish(checkpointData);
 
     return {
       message: 'Checkpoint received and queued for processing.',
@@ -85,21 +86,27 @@ export class TrackingController {
   @ApiResponse({
     status: 200,
     description: 'History found',
-    type: UnitResponseOutput,
+    type: UnitResponseDto,
   })
   @ApiResponse({ status: 404, description: 'Unit not found' })
   async getTrackingHistory(
     @Param('trackingId') trackingId: string,
-  ): Promise<UnitResponseOutput> {
+  ): Promise<UnitResponseDto> {
     this.logger.debug(`Retrieving tracking history for: ${trackingId}`);
 
     try {
-      const unitOutput =
-        await this.getTrackingHistoryUseCase.execute(trackingId);
+      // Convert string to Value Object
+      const trackingIdVO = TrackingIdMapper.toValueObject(trackingId);
+
+      // Use Case returns Unit entity
+      const unit = await this.getTrackingHistoryUseCase.execute(trackingIdVO);
+
       this.logger.log(
         `Tracking history retrieved successfully for: ${trackingId}`,
       );
-      return unitOutput;
+
+      // Convert Unit entity to DTO using mapper
+      return UnitResponseMapper.toDto(unit);
     } catch (error) {
       if (error instanceof UnitNotFoundError) {
         this.logger.warn(`Unit not found: ${trackingId}`);
@@ -118,23 +125,26 @@ export class TrackingController {
   @ApiResponse({
     status: 200,
     description: 'List of units',
-    type: [UnitSummaryResponseOutput],
+    type: [UnitSummaryResponseDto],
   })
   @ApiResponse({ status: 400, description: 'Invalid state' })
   async listShipmentsByState(
     @Query() query: ListUnitsQueryDto,
-  ): Promise<UnitSummaryResponseOutput[]> {
+  ): Promise<UnitSummaryResponseDto[]> {
     this.logger.debug(`Listing shipments by state: ${query.status}`);
 
-    const unitOutputs = await this.listUnitsByStateUseCase.execute(
-      query.status,
-    );
+    // Convert DTO to Value Object
+    const stateQuery = UnitStateQueryMapper.toValueObject(query);
+
+    // Use Case returns Unit[] entities
+    const units = await this.listUnitsByStateUseCase.execute(stateQuery);
 
     this.logger.logWithMetadata('info', 'Shipments listed', {
       status: query.status,
-      count: unitOutputs.length,
+      count: units.length,
     });
 
-    return unitOutputs;
+    // Convert Unit[] to DTOs using mapper
+    return UnitSummaryResponseMapper.toDtoList(units);
   }
 }
