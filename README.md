@@ -2,6 +2,17 @@
 
 Sistema de seguimiento de paquetes construido con NestJS, implementando arquitectura limpia para procesar aproximadamente 1.21 millones de checkpoints diarios.
 
+## Despliegue
+
+Esta API está desplegada en Render y es accesible en:
+- **API base**: [https://nest-api-tracking.onrender.com/api/v1](https://nest-api-tracking.onrender.com/api/v1)
+- **Documentación Swagger**: [https://nest-api-tracking.onrender.com/api](https://nest-api-tracking.onrender.com/api)
+
+La base de datos utilizada es MongoDB Atlas: [https://cloud.mongodb.com](https://cloud.mongodb.com)
+
+La cola de mensajes es gestionada por CloudAMQP: [https://api.cloudamqp.com](https://api.cloudamqp.com)
+**Nota importante**: Tanto Render como CloudAMQP están en tiers gratuitos, lo que significa que la aplicación o la cola de mensajes pueden apagarse debido a inactividad o límites de uso. Si experimentas problemas de acceso, por favor, contacta al administrador para su reactivación.
+
 ## Requisitos previos
 
 - **Node.js**: v18+ (ver [.nvmrc](./nvmrc))
@@ -286,28 +297,52 @@ Respuesta: `200 OK`
 
 ## Estructura del proyecto
 
+El proyecto sigue una estructura modular basada en los principios de **arquitectura limpia (Clean Architecture)**. Cada módulo de negocio (`auth`, `tracking`) está aislado y dividido en cuatro capas principales: `domain`, `application`, `infrastructure` y `presentation`.
+
 ```
 src/
-├── config/                 # Configuraciones (Winston, etc.)
-├── core/                   # Servicios globales (Logger, Filters)
-├── modules/
-│   ├── auth/              # Autenticación (JWT)
-│   │   ├── domain/        # Entidades, errores
-│   │   ├── application/   # Casos de uso
-│   │   ├── infrastructure/# Repositorio MongoDB
-│   │   └── presentation/  # Controllers, DTOs, Guards
-│   └── tracking/          # Tracking de paquetes
-│       ├── domain/        # Unit entity, máquina de estados
-│       ├── application/   # Casos de uso
-│       ├── infrastructure/# Repositorio y RabbitMQ
-│       └── presentation/  # Controllers, DTOs
-├── app.module.ts          # Módulo principal
-├── main.ts                # Entry point de la API
-└── main.worker.ts         # Entry point del worker
+├── app.module.ts           # Módulo raíz de la aplicación
+├── main.ts                 # Punto de entrada de la API (HTTP Server)
+├── main.worker.ts          # Punto de entrada del Worker (Consumidor de colas)
+│
+├── config/                 # Configuración de la aplicación (variables de entorno, logger)
+├── core/                   # Componentes transversales (filtros de excepciones, logger global)
+│
+├── modules/                # Contenedor de los módulos de negocio
+│   │
+│   ├── auth/               # Módulo de autenticación y usuarios
+│   │   ├── application/    # Casos de uso (login, registro)
+│   │   ├── domain/         # Entidades (User), repositorios y lógica de negocio pura
+│   │   ├── infrastructure/ # Implementaciones (repositorio con MongoDB, estrategias JWT)
+│   │   └── presentation/   # Capa de entrada (Controller, DTOs, Guards)
+│   │
+│   └── tracking/           # Módulo de seguimiento de paquetes (corazón del negocio)
+│       ├── application/    # Casos de uso (registrar checkpoint, consultar historial)
+│       │
+│       ├── domain/         # Lógica de negocio del tracking
+│       │   ├── entities/       # Entidades de negocio (Unit, Checkpoint)
+│       │   ├── value-objects/  # Objetos de valor (TrackingId)
+│       │   ├── repositories/   # Contratos de repositorios (IUnitRepository)
+│       │   ├── ports/          # Puertos para casos de uso y comunicación externa (messaging)
+│       │   ├── exceptions/     # Errores de dominio personalizados
+│       │   └── configs/        # Constantes y enumeraciones del dominio (UnitState)
+│       │
+│       ├── infrastructure/ # Implementaciones de tecnología y servicios externos
+│       │   ├── persistence/    # Repositorio con MongoDB (MongoUnitRepository)
+│       │   ├── messaging/      # Productores y consumidores de RabbitMQ
+│       │   └── providers/      # Inyección de dependencias para casos de uso
+│       │
+│       └── presentation/   # Capa de entrada para el módulo de tracking
+│           ├── dtos/           # Data Transfer Objects para requests y responses
+│           ├── mappers/        # Mapeadores entre DTOs y entidades de dominio
+│           └── tracking.controller.ts # Controlador HTTP
+│
+└── shared/                 # Código compartido entre módulos
+    └── domain/             # Elementos de dominio transversales (ej. DomainException base)
 
 docs/
-├── adr/                   # Architecture Decision Records
-└── c4/                    # Diagramas de arquitectura C4
+├── adr/                    # Architecture Decision Records (decisiones de diseño)
+└── c4/                     # Diagramas de arquitectura (Contexto, Contenedores, etc.)
 ```
 
 ## Stack tecnológico
@@ -326,10 +361,10 @@ docs/
 
 El proyecto implementa **arquitectura limpia** con 4 capas:
 
-1. **Domain** (dominio): Lógica de negocio pura, entidades, errores de dominio
-2. **Application** (aplicación): Casos de uso, orquestación
-3. **Infrastructure** (infraestructura): Repositorios MongoDB, productores RabbitMQ
-4. **Presentation** (presentación): Controllers HTTP, DTOs, validaciones
+1. **Domain** (dominio): Lógica de negocio pura, entidades, errores de dominio.
+2. **Application** (aplicación): Casos de uso que orquestan el flujo.
+3. **Infrastructure** (infraestructura): Implementaciones concretas de tecnología (repositorios, colas).
+4. **Presentation** (presentación): Capa de entrada y salida (controllers, DTOs).
 
 ### Flujo asíncrono
 
@@ -345,13 +380,47 @@ POST /checkpoints → API valida → Publica en RabbitMQ (202 Accepted)
 
 ### Decisiones arquitectónicas
 
-Consulta los documentos en [`docs/adr/`](./docs/adr) para más detalles:
+Consulta los documentos en [`docs/adr/`](./docs/adr) para más detalles sobre las decisiones de diseño clave:
 
-- **ADR-001**: Arquitectura limpia con NestJS
-- **ADR-002**: Cola de mensajes para garantía de entrega
-- **ADR-003**: MongoDB con checkpoints embebidos
-- **ADR-004**: Máquina de estados para consistencia
-- **ADR-005**: Sin caché para simplificar
+- **ADR-001**: Arquitectura limpia con NestJS.
+- **ADR-002**: Cola de mensajes para garantía de entrega.
+- **ADR-003**: MongoDB con checkpoints embebidos.
+- **ADR-004**: Máquina de estados para consistencia de datos.
+- **ADR-005**: Sin caché para simplificar la arquitectura inicial.
+- **ADR-006**: Colocación del productor y consumidor en el mismo servicio.
+
+Consulta la [guía de los diagramas de arquitectura (C4)](./docs/c4/README.md) para entender mejor la estructura del sistema.
+
+## Detalles de la implementación
+
+Esta sección cubre decisiones de implementación internas que son útiles para los desarrolladores que trabajan en el proyecto.
+
+### Versionado de la API
+
+El versionado de la API se gestiona a través de la URL. La versión actual es la **v1**, y todos los endpoints están prefijados con `/api/v1`.
+
+### Gestión de la configuración
+
+La aplicación utiliza el `ConfigModule` de NestJS para gestionar las variables de entorno.
+
+- **Carga**: Las variables se cargan desde un fichero `.env` que sobreescribe los valores por defecto.
+- **Validación**: El fichero `src/config/env.validation.ts` utiliza `Joi` para validar que todas las variables de entorno requeridas estén presentes y sean del tipo correcto durante el arranque. Si falta una variable o es inválida, la aplicación no se iniciará.
+
+### Manejo de errores
+
+El proyecto tiene una estrategia centralizada para el manejo de errores mediante filtros de excepciones globales, definidos en `src/core/filters`:
+
+- **`AllExceptionsFilter`**: Captura cualquier excepción no controlada para asegurar que el servidor siempre devuelva una respuesta JSON estructurada en lugar de un error HTML.
+- **`DomainExceptionFilter`**: Captura las excepciones de dominio personalizadas (clases que heredan de `DomainException`). Esto permite lanzar errores de negocio desde la capa de dominio (ej. `UnitNotFoundError`) y traducirlos automáticamente a respuestas HTTP apropiadas (ej. `404 Not Found`).
+- **`HttpExceptionFilter`**: Captura las excepciones propias de NestJS (ej. `NotFoundException`) para centralizar el logging.
+
+### Logging
+
+Se utiliza **Winston** para un logging estructurado y configurable. La configuración se encuentra en `src/config/logger.config.ts`.
+
+- **Formato**: En desarrollo, los logs se imprimen en consola con colores para facilitar la lectura. En producción, se utiliza un formato JSON que es ideal para ser ingerido por sistemas de monitorización.
+- **Niveles**: Se utilizan los niveles estándar (`debug`, `info`, `warn`, `error`).
+- **Contexto**: Cada log incluye el contexto (ej. el nombre de la clase) desde donde fue emitido, facilitando la trazabilidad.
 
 ## Scripts disponibles
 
@@ -410,9 +479,6 @@ docker-compose ps mongo
 ### Error: Invalid state transition
 
 El sistema rechaza transiciones de estado inválidas. Ejemplo:
-- ❌ `CREATED` → `DELIVERED` (falta el estado intermedio)
-- ✅ `CREATED` → `PICKED_UP` → `IN_TRANSIT` → `DELIVERED`
 
-## Licencia
-
-MIT
+- `CREATED` → `DELIVERED` (falta el estado intermedio) ---> Rechazado
+- `CREATED` → `PICKED_UP` → `IN_TRANSIT` → `DELIVERED` ---> Aceptado
