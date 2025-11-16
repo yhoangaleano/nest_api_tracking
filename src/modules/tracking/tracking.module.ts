@@ -3,11 +3,9 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 
-// Application layer
-import { CHECKPOINT_PRODUCER_TOKEN } from './application/messaging/checkpoint-producer.interface';
-
 // Domain layer
 import { UNIT_REPOSITORY_TOKEN_CONSTANT } from './domain/repositories';
+import { CHECKPOINT_PRODUCER_TOKEN } from './domain/ports/messaging';
 
 // Infrastructure layer
 import { CheckpointConsumer } from './infrastructure/messaging/checkpoint.consumer';

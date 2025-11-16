@@ -1,13 +1,14 @@
-import { CheckpointData } from '../../value-objects';
+// Domain layer
+import { CheckpointData } from '../../value-objects/checkpoint-data.value-object';
 
 /**
- * Port for checkpoint message producer
- * Uses Value Object to ensure data integrity
+ * Output Port for publishing checkpoint messages
+ * Infrastructure layer implements this interface
  */
 export interface ICheckpointProducer {
   /**
    * Publishes a checkpoint message to the queue
-   * @param data - The checkpoint data (Value Object)
+   * @param data - The checkpoint data Value Object to publish
    */
   publish(data: CheckpointData): void;
 }

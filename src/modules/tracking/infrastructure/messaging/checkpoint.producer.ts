@@ -5,17 +5,14 @@ import { ConfigService } from '@nestjs/config';
 // Third-party libraries
 import { Channel } from 'amqplib';
 
-// Application layer
-import { ICheckpointProducer } from '../../application/messaging/checkpoint-producer.interface';
-
 // Domain layer
-import { CheckpointData } from '../../domain';
+import { CheckpointData, ICheckpointProducer } from '../../domain';
 
-// Own code imports
+// Infrastructure configs
 import {
   CHECKPOINT_QUEUE_CONFIG_KEY_CONSTANT,
   DEFAULT_CHECKPOINT_QUEUE_NAME_CONSTANT,
-} from '../../configs/messaging.constants';
+} from './configs';
 
 // Infrastructure layer
 import { RabbitMQConnectionService } from './rabbitmq-connection.service';

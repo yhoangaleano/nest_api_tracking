@@ -7,8 +7,8 @@ import { Document } from 'mongoose';
 // Domain layer
 import { UNIT_STATE_ENUMERATION } from '../../domain/configs';
 
-// Own code imports
-import { UNITS_COLLECTION_NAME_CONSTANT } from '../../configs/persistence.constants';
+// Infrastructure configs
+import { UNITS_COLLECTION_NAME_CONSTANT } from './configs/persistence.constants';
 
 class CheckpointDocument {
   @Prop({ required: true, enum: UNIT_STATE_ENUMERATION })

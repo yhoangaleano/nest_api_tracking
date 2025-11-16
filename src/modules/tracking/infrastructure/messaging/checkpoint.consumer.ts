@@ -14,13 +14,11 @@ import {
 } from '../../domain';
 import { UNIT_STATE_ENUMERATION } from '../../domain/configs/unit-state.enum';
 
-// Own code imports
+// Infrastructure configs
 import {
   DEFAULT_RETRY_DELAY_MS_CONSTANT,
   MAX_RETRIES_CONSTANT,
   RETRY_DELAYS_MS_CONSTANT,
-} from '../../configs/retry-strategy.constants';
-import {
   CHECKPOINT_QUEUE_CONFIG_KEY_CONSTANT,
   DEFAULT_CHECKPOINT_QUEUE_NAME_CONSTANT,
   DEFAULT_CONSUMER_PREFETCH_COUNT_CONSTANT,
@@ -29,7 +27,7 @@ import {
   RABBITMQ_HEADER_FAILED_AT_CONSTANT,
   RABBITMQ_HEADER_ORIGINAL_QUEUE_CONSTANT,
   RABBITMQ_HEADER_RETRY_COUNT_CONSTANT,
-} from '../../configs/messaging.constants';
+} from './configs';
 
 // Infrastructure layer
 import { RabbitMQConnectionService } from './rabbitmq-connection.service';

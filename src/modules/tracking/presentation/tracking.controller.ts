@@ -16,12 +16,6 @@ import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 // Core layer
 import { LoggerService } from '../../../core/logger/logger.service';
 
-// Application layer
-import {
-  ICheckpointProducer,
-  CHECKPOINT_PRODUCER_TOKEN,
-} from '../application/messaging/checkpoint-producer.interface';
-
 // Presentation layer
 import { ListUnitsQueryDto } from './dtos/list-units-query.dto';
 import { RegisterCheckpointDto } from './dtos/register-checkpoint.dto';
@@ -40,8 +34,10 @@ import {
   UnitNotFoundError,
   IGetTrackingHistoryUseCase,
   IListUnitsByStateUseCase,
+  ICheckpointProducer,
   GET_TRACKING_HISTORY_USE_CASE_TOKEN,
   LIST_UNITS_BY_STATE_USE_CASE_TOKEN,
+  CHECKPOINT_PRODUCER_TOKEN,
 } from '../domain';
 
 @ApiTags('tracking')
