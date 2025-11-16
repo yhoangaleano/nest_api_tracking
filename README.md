@@ -11,6 +11,7 @@ Esta API está desplegada en Render y es accesible en:
 La base de datos utilizada es MongoDB Atlas: [https://cloud.mongodb.com](https://cloud.mongodb.com)
 
 La cola de mensajes es gestionada por CloudAMQP: [https://api.cloudamqp.com](https://api.cloudamqp.com)
+
 **Nota importante**: Tanto Render como CloudAMQP están en tiers gratuitos, lo que significa que la aplicación o la cola de mensajes pueden apagarse debido a inactividad o límites de uso. Si experimentas problemas de acceso, por favor, contacta al administrador para su reactivación.
 
 ## Requisitos previos
