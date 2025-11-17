@@ -3,9 +3,11 @@ import { Provider } from '@nestjs/common';
 
 // Application layer
 import {
+  CreateUnitUseCase,
   GetTrackingHistoryUseCase,
   ListUnitsByStateUseCase,
   RegisterCheckpointUseCase,
+  CREATE_UNIT_USE_CASE_TOKEN,
 } from '../../application/use-cases';
 
 // Domain layer
@@ -18,9 +20,15 @@ import {
   UNIT_REPOSITORY_TOKEN_CONSTANT,
   UNIT_CACHE_PORT_TOKEN,
 } from '../../domain';
-import { StateTransitionValidatorService } from '../../domain/services/state-transition-validator.service';
 
 export const USE_CASE_PROVIDERS: Provider[] = [
+  {
+    provide: CREATE_UNIT_USE_CASE_TOKEN,
+    useFactory: (unitRepository: IUnitRepository) => {
+      return new CreateUnitUseCase(unitRepository);
+    },
+    inject: [UNIT_REPOSITORY_TOKEN_CONSTANT],
+  },
   {
     provide: GET_TRACKING_HISTORY_USE_CASE_TOKEN,
     useFactory: (unitRepository: IUnitRepository) => {
@@ -40,18 +48,9 @@ export const USE_CASE_PROVIDERS: Provider[] = [
     useFactory: (
       unitRepository: IUnitRepository,
       cachePort: IUnitCachePort,
-      stateValidator: StateTransitionValidatorService,
     ) => {
-      return new RegisterCheckpointUseCase(
-        unitRepository,
-        cachePort,
-        stateValidator,
-      );
+      return new RegisterCheckpointUseCase(unitRepository, cachePort);
     },
-    inject: [
-      UNIT_REPOSITORY_TOKEN_CONSTANT,
-      UNIT_CACHE_PORT_TOKEN,
-      StateTransitionValidatorService,
-    ],
+    inject: [UNIT_REPOSITORY_TOKEN_CONSTANT, UNIT_CACHE_PORT_TOKEN],
   },
 ];

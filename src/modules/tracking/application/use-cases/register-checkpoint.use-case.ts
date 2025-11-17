@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 
 // Domain layer
 import {
@@ -10,6 +10,7 @@ import {
   UNIT_REPOSITORY_TOKEN_CONSTANT,
   IUnitCachePort,
   UNIT_CACHE_PORT_TOKEN,
+  UnitNotFoundError,
 } from '../../domain';
 import { UNIT_STATE_ENUMERATION } from '../../domain/configs/unit-state.enum';
 import { validateStateTransition } from '../../domain/configs/state-transitions';
@@ -22,12 +23,11 @@ import { validateStateTransition } from '../../domain/configs/state-transitions'
  * Clean Architecture:
  * - Depends on domain ports (IUnitRepository, IUnitCachePort)
  * - Does NOT depend on infrastructure implementations
- * - Infrastructure is injected via dependency injection
+ * - Infrastructure is injected via factory pattern (use-case.providers.ts)
  *
  * IMPORTANT: Units must exist before checkpoints can be added
  * This use case will NOT auto-create units
  */
-@Injectable()
 export class RegisterCheckpointUseCase implements IRegisterCheckpointUseCase {
   constructor(
     @Inject(UNIT_REPOSITORY_TOKEN_CONSTANT)
@@ -42,9 +42,7 @@ export class RegisterCheckpointUseCase implements IRegisterCheckpointUseCase {
 
     // Early return: if cache says unit doesn't exist
     if (cachedExists === '0') {
-      throw new NotFoundException(
-        `Unit with tracking ID ${data.trackingId} not found`,
-      );
+      throw new UnitNotFoundError(data.trackingId);
     }
 
     // Query database if not cached or cache says it exists
@@ -53,9 +51,7 @@ export class RegisterCheckpointUseCase implements IRegisterCheckpointUseCase {
     // If unit not found, update cache and throw error
     if (!unit) {
       await this.cachePort.setUnitExists(data.trackingId, false);
-      throw new NotFoundException(
-        `Unit with tracking ID ${data.trackingId} not found`,
-      );
+      throw new UnitNotFoundError(data.trackingId);
     }
 
     // If we got here from cache miss, update cache with positive result

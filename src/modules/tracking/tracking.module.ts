@@ -6,14 +6,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 // Domain layer
 import { UNIT_REPOSITORY_TOKEN_CONSTANT } from './domain/repositories';
-import { CHECKPOINT_PRODUCER_TOKEN } from './domain/ports/messaging';
 import { UNIT_CACHE_PORT_TOKEN } from './domain/ports/cache';
-import { StateTransitionValidatorService } from './domain/services/state-transition-validator.service';
-
-// Infrastructure layer - Messaging
-import { CheckpointConsumer } from './infrastructure/messaging/checkpoint.consumer';
-import { CheckpointProducer } from './infrastructure/messaging/checkpoint.producer';
-import { RabbitMQConnectionService } from './infrastructure/messaging/rabbitmq-connection.service';
 
 // Infrastructure layer - Persistence (MongoDB - temporal)
 // import { MongoUnitRepository } from './infrastructure/persistence/mongo-unit.repository';
@@ -70,18 +63,6 @@ import { TrackingController } from './presentation/tracking.controller';
       provide: UNIT_CACHE_PORT_TOKEN,
       useClass: RedisUnitCacheAdapter,
     },
-
-    // Domain Services
-    StateTransitionValidatorService,
-
-    // Messaging (Dependency Injection - temporal, se eliminará en Fase 3 final)
-    {
-      provide: CHECKPOINT_PRODUCER_TOKEN,
-      useClass: CheckpointProducer,
-    },
-    RabbitMQConnectionService,
-    CheckpointConsumer,
   ],
-  exports: [CheckpointConsumer],
 })
 export class TrackingModule {}

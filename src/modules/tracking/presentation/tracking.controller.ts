@@ -17,9 +17,14 @@ import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 // Core layer
 import { LoggerService } from '../../../core/logger/logger.service';
 
+// Auth decorators
+import { Public } from '../../auth/presentation/decorators/public.decorator';
+
 // Presentation layer
+import { CreateUnitDto } from './dtos/create-unit.dto';
 import { ListUnitsQueryDto } from './dtos/list-units-query.dto';
 import { RegisterCheckpointDto } from './dtos/register-checkpoint.dto';
+import { CreateUnitResponseDto } from './dtos/output/create-unit-response.dto';
 import { UnitResponseDto } from './dtos/output/unit-response.dto';
 import { UnitSummaryResponseDto } from './dtos/output/unit-summary-response.dto';
 import {
@@ -30,24 +35,33 @@ import {
   UnitSummaryResponseMapper,
 } from './mappers';
 
+// Application layer
+import {
+  ICreateUnitUseCase,
+  CREATE_UNIT_USE_CASE_TOKEN,
+} from '../application/use-cases';
+
 // Domain layer
 import {
   UnitNotFoundError,
   InvalidValueObjectError,
+  InvalidStateTransitionError,
   IGetTrackingHistoryUseCase,
   IListUnitsByStateUseCase,
-  ICheckpointProducer,
+  IRegisterCheckpointUseCase,
   GET_TRACKING_HISTORY_USE_CASE_TOKEN,
   LIST_UNITS_BY_STATE_USE_CASE_TOKEN,
-  CHECKPOINT_PRODUCER_TOKEN,
+  REGISTER_CHECKPOINT_USE_CASE_TOKEN,
 } from '../domain';
 
 @ApiTags('tracking')
 @Controller('api/v1')
 export class TrackingController {
   constructor(
-    @Inject(CHECKPOINT_PRODUCER_TOKEN)
-    private readonly checkpointProducer: ICheckpointProducer,
+    @Inject(CREATE_UNIT_USE_CASE_TOKEN)
+    private readonly createUnitUseCase: ICreateUnitUseCase,
+    @Inject(REGISTER_CHECKPOINT_USE_CASE_TOKEN)
+    private readonly registerCheckpointUseCase: IRegisterCheckpointUseCase,
     @Inject(GET_TRACKING_HISTORY_USE_CASE_TOKEN)
     private readonly getTrackingHistoryUseCase: IGetTrackingHistoryUseCase,
     @Inject(LIST_UNITS_BY_STATE_USE_CASE_TOKEN)
@@ -57,26 +71,56 @@ export class TrackingController {
     this.logger.setContext('TrackingController');
   }
 
+  @Public()
   @Post('checkpoints')
-  @HttpCode(HttpStatus.ACCEPTED)
-  @ApiOperation({ summary: 'Register a new checkpoint (asynchronous)' })
-  @ApiResponse({ status: 202, description: 'Checkpoint queued successfully' })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Register a new checkpoint (synchronous)' })
+  @ApiResponse({ status: 200, description: 'Checkpoint registered successfully' })
   @ApiResponse({ status: 400, description: 'Invalid data' })
-  registerCheckpoint(@Body() dto: RegisterCheckpointDto): { message: string } {
-    this.logger.logWithMetadata('info', 'Checkpoint received', {
+  @ApiResponse({ status: 404, description: 'Unit not found' })
+  async registerCheckpoint(
+    @Body() dto: RegisterCheckpointDto,
+  ): Promise<{ message: string }> {
+    this.logger.logWithMetadata('info', 'Registering checkpoint', {
       trackingId: dto.trackingId,
       status: dto.status,
       location: dto.location,
     });
 
-    // Convert DTO to Value Object using mapper
-    const checkpointData = CheckpointDataMapper.toValueObject(dto);
+    try {
+      // Convert DTO to Value Object using mapper
+      const checkpointData = CheckpointDataMapper.toValueObject(dto);
 
-    this.checkpointProducer.publish(checkpointData);
+      // Execute use case synchronously
+      await this.registerCheckpointUseCase.execute(checkpointData);
 
-    return {
-      message: 'Checkpoint received and queued for processing.',
-    };
+      this.logger.logWithMetadata('info', '✅ Checkpoint registered successfully', {
+        trackingId: dto.trackingId,
+        status: dto.status,
+      });
+
+      return {
+        message: 'Checkpoint registered successfully',
+      };
+    } catch (error) {
+      if (error instanceof UnitNotFoundError) {
+        this.logger.warn(`Unit not found: ${dto.trackingId}`);
+        throw new NotFoundException(error.message);
+      }
+      if (error instanceof InvalidStateTransitionError) {
+        this.logger.warn(`Invalid state transition: ${error.message}`);
+        throw new BadRequestException(error.message);
+      }
+      if (error instanceof InvalidValueObjectError) {
+        this.logger.warn(`Invalid checkpoint data: ${error.message}`);
+        throw new BadRequestException(error.message);
+      }
+      this.logger.error(
+        `Error registering checkpoint: ${dto.trackingId}`,
+        (error as Error).stack,
+      );
+      throw error;
+    }
   }
 
   @Get('tracking/:trackingId')
@@ -148,5 +192,68 @@ export class TrackingController {
 
     // Convert Unit[] to DTOs using mapper
     return UnitSummaryResponseMapper.toDtoList(units);
+  }
+
+  /**
+   * 🧪 TESTING ONLY: Create a new unit
+   *
+   * This endpoint is for development and testing purposes only.
+   * In production, units are created by external systems (WMS, TMS, etc.)
+   *
+   * @param dto - CreateUnitDto with trackingId
+   * @returns CreateUnitResponseDto with unit details
+   * @throws ConflictException if unit already exists
+   * @throws ForbiddenException if called in production environment
+   */
+  @Public()
+  @Post('units')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: '🧪 Create a new unit (TESTING ONLY)',
+    description:
+      'Creates a new unit with an initial checkpoint (state = CREATED). ' +
+      'This endpoint is for development and testing purposes only. ' +
+      'In production, units should be created by external systems (WMS, TMS, etc.).',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Unit created successfully',
+    type: CreateUnitResponseDto,
+  })
+  @ApiResponse({ status: 400, description: 'Invalid data' })
+  @ApiResponse({ status: 409, description: 'Unit already exists' })
+  @ApiResponse({
+    status: 403,
+    description: 'Endpoint only available in development',
+  })
+  async createUnit(@Body() dto: CreateUnitDto): Promise<CreateUnitResponseDto> {
+    this.logger.logWithMetadata('info', '🧪 Creating unit for testing', {
+      trackingId: dto.trackingId,
+    });
+
+    try {
+      // Create unit with initial checkpoint (state = CREATED)
+      const unit = await this.createUnitUseCase.execute(dto.trackingId);
+
+      this.logger.logWithMetadata('info', '✅ Unit created successfully', {
+        trackingId: unit.trackingId,
+        currentState: unit.currentState,
+      });
+
+      return {
+        trackingId: unit.trackingId,
+        currentState: unit.currentState,
+        createdAt: new Date().toISOString(),
+        success: true,
+        message: 'Unit created successfully',
+      };
+    } catch (error) {
+      // ConflictException is already thrown by use case
+      this.logger.error(
+        `Error creating unit: ${dto.trackingId}`,
+        (error as Error).stack,
+      );
+      throw error;
+    }
   }
 }
