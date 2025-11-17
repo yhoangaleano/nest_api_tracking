@@ -38,7 +38,6 @@ describe('TrackingController', () => {
       execute: jest.fn(),
     } as jest.Mocked<IListUnitsByStateUseCase>;
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     mockCreateUnitUseCase = {
       execute: jest.fn(),
     } as jest.Mocked<ICreateUnitUseCase>;
@@ -52,9 +51,8 @@ describe('TrackingController', () => {
         },
 
         {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           provide: CREATE_UNIT_USE_CASE_TOKEN,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
           useValue: mockCreateUnitUseCase,
         },
         {

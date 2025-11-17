@@ -3,6 +3,7 @@ import {
   INVALID_STATE_TRANSITION_ERROR_CODE_CONSTANT,
   UNIT_NOT_FOUND_ERROR_CODE_CONSTANT,
   INVALID_VALUE_OBJECT_ERROR_CODE_CONSTANT,
+  UNIT_ALREADY_EXISTS_ERROR_CODE_CONSTANT,
 } from '../configs/unit.constants';
 
 export class InvalidStateTransitionError extends DomainException {
@@ -26,5 +27,14 @@ export class UnitNotFoundError extends DomainException {
 export class InvalidValueObjectError extends DomainException {
   constructor(message: string) {
     super(message, INVALID_VALUE_OBJECT_ERROR_CODE_CONSTANT);
+  }
+}
+
+export class UnitAlreadyExistsError extends DomainException {
+  constructor(trackingId: string) {
+    super(
+      `Unit with tracking ID ${trackingId} already exists`,
+      UNIT_ALREADY_EXISTS_ERROR_CODE_CONSTANT,
+    );
   }
 }

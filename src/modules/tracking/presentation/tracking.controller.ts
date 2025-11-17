@@ -2,6 +2,7 @@
 import {
   BadRequestException,
   Body,
+  ConflictException,
   Controller,
   Get,
   HttpCode,
@@ -35,20 +36,20 @@ import {
   UnitSummaryResponseMapper,
 } from './mappers';
 
-// Application layer
-import {
-  ICreateUnitUseCase,
-  CREATE_UNIT_USE_CASE_TOKEN,
-} from '../application/use-cases';
+// Domain layer (value objects)
+import { TrackingId } from '../domain/value-objects';
 
 // Domain layer
 import {
   UnitNotFoundError,
   InvalidValueObjectError,
   InvalidStateTransitionError,
+  UnitAlreadyExistsError,
+  ICreateUnitUseCase,
   IGetTrackingHistoryUseCase,
   IListUnitsByStateUseCase,
   IRegisterCheckpointUseCase,
+  CREATE_UNIT_USE_CASE_TOKEN,
   GET_TRACKING_HISTORY_USE_CASE_TOKEN,
   LIST_UNITS_BY_STATE_USE_CASE_TOKEN,
   REGISTER_CHECKPOINT_USE_CASE_TOKEN,
@@ -241,8 +242,11 @@ export class TrackingController {
     });
 
     try {
+      // Convert DTO string to Value Object (validates format)
+      const trackingIdVO = TrackingId.create(dto.trackingId);
+
       // Create unit with initial checkpoint (state = CREATED)
-      const unit = await this.createUnitUseCase.execute(dto.trackingId);
+      const unit = await this.createUnitUseCase.execute(trackingIdVO);
 
       this.logger.logWithMetadata('info', '✅ Unit created successfully', {
         trackingId: unit.trackingId,
@@ -257,7 +261,14 @@ export class TrackingController {
         message: 'Unit created successfully',
       };
     } catch (error) {
-      // ConflictException is already thrown by use case
+      if (error instanceof UnitAlreadyExistsError) {
+        this.logger.warn(`Unit already exists: ${dto.trackingId}`);
+        throw new ConflictException(error.message);
+      }
+      if (error instanceof InvalidValueObjectError) {
+        this.logger.warn(`Invalid tracking ID format: ${dto.trackingId}`);
+        throw new BadRequestException(error.message);
+      }
       this.logger.error(
         `Error creating unit: ${dto.trackingId}`,
         (error as Error).stack,

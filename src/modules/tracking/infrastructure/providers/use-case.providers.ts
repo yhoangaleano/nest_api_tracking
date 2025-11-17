@@ -7,13 +7,13 @@ import {
   GetTrackingHistoryUseCase,
   ListUnitsByStateUseCase,
   RegisterCheckpointUseCase,
-  CREATE_UNIT_USE_CASE_TOKEN,
 } from '../../application/use-cases';
 
 // Domain layer
 import {
   IUnitRepository,
   IUnitCachePort,
+  CREATE_UNIT_USE_CASE_TOKEN,
   GET_TRACKING_HISTORY_USE_CASE_TOKEN,
   LIST_UNITS_BY_STATE_USE_CASE_TOKEN,
   REGISTER_CHECKPOINT_USE_CASE_TOKEN,
