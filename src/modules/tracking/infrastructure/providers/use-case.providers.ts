@@ -11,11 +11,14 @@ import {
 // Domain layer
 import {
   IUnitRepository,
+  IUnitCachePort,
   GET_TRACKING_HISTORY_USE_CASE_TOKEN,
   LIST_UNITS_BY_STATE_USE_CASE_TOKEN,
   REGISTER_CHECKPOINT_USE_CASE_TOKEN,
   UNIT_REPOSITORY_TOKEN_CONSTANT,
+  UNIT_CACHE_PORT_TOKEN,
 } from '../../domain';
+import { StateTransitionValidatorService } from '../../domain/services/state-transition-validator.service';
 
 export const USE_CASE_PROVIDERS: Provider[] = [
   {
@@ -34,9 +37,21 @@ export const USE_CASE_PROVIDERS: Provider[] = [
   },
   {
     provide: REGISTER_CHECKPOINT_USE_CASE_TOKEN,
-    useFactory: (unitRepository: IUnitRepository) => {
-      return new RegisterCheckpointUseCase(unitRepository);
+    useFactory: (
+      unitRepository: IUnitRepository,
+      cachePort: IUnitCachePort,
+      stateValidator: StateTransitionValidatorService,
+    ) => {
+      return new RegisterCheckpointUseCase(
+        unitRepository,
+        cachePort,
+        stateValidator,
+      );
     },
-    inject: [UNIT_REPOSITORY_TOKEN_CONSTANT],
+    inject: [
+      UNIT_REPOSITORY_TOKEN_CONSTANT,
+      UNIT_CACHE_PORT_TOKEN,
+      StateTransitionValidatorService,
+    ],
   },
 ];

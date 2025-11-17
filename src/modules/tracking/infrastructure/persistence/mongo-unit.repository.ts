@@ -62,7 +62,14 @@ export class MongoUnitRepository implements IUnitRepository {
 
   private toDomain(doc: UnitDocument): Unit {
     const checkpoints = doc.checkpoints.map(
-      (cp) => new Checkpoint(cp.status, cp.timestamp, cp.location, cp.notes),
+      (cp) =>
+        new Checkpoint(
+          cp.status,
+          cp.timestamp,
+          cp.location,
+          1, // MongoDB doesn't have attemptNumber, default to 1
+          cp.notes,
+        ),
     );
     return new Unit(
       doc._id?.toString() || null,

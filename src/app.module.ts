@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
+import { TypeOrmModule } from '@nestjs/typeorm';
 
 // Own code imports
 import configuration from './config/configuration';
@@ -25,11 +26,27 @@ import { TrackingModule } from './modules/tracking/tracking.module';
       },
     }),
 
-    // Database
+    // Database - MongoDB (temporal - migración en progreso)
     MongooseModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         uri: configService.get<string>('database.url'),
+      }),
+    }),
+
+    // Database - PostgreSQL (nuevo)
+    TypeOrmModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        type: 'postgres',
+        host: configService.get<string>('postgres.host'),
+        port: configService.get<number>('postgres.port'),
+        username: configService.get<string>('postgres.username'),
+        password: configService.get<string>('postgres.password'),
+        database: configService.get<string>('postgres.database'),
+        entities: [__dirname + '/**/*.entity{.ts,.js}'],
+        synchronize: configService.get<boolean>('postgres.synchronize'),
+        logging: configService.get<boolean>('postgres.logging'),
       }),
     }),
 

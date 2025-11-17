@@ -1,8 +1,31 @@
 const configuration = () => ({
   port: Number.parseInt(process.env.PORT || '3000', 10),
+
+  // PostgreSQL (nuevo - migración)
+  postgres: {
+    host: process.env.POSTGRES_HOST || 'localhost',
+    port: Number.parseInt(process.env.POSTGRES_PORT || '5432', 10),
+    username: process.env.POSTGRES_USER || 'tracking_user',
+    password: process.env.POSTGRES_PASSWORD || 'tracking_pass',
+    database: process.env.POSTGRES_DATABASE || 'tracking_db',
+    synchronize: process.env.POSTGRES_SYNC === 'true', // false en producción
+    logging: process.env.NODE_ENV === 'development',
+  },
+
+  // Redis (nuevo - cache)
+  redis: {
+    host: process.env.REDIS_HOST || 'localhost',
+    port: Number.parseInt(process.env.REDIS_PORT || '6379', 10),
+    password: process.env.REDIS_PASSWORD || undefined,
+    ttl: Number.parseInt(process.env.REDIS_TTL || '3600', 10),
+  },
+
+  // MongoDB (temporal - se eliminará después de migración)
   database: {
     url: process.env.DATABASE_URL || 'mongodb://localhost:27017/tracking_db',
   },
+
+  // RabbitMQ (temporal - se eliminará en Fase 3)
   rabbitmq: {
     url: process.env.RABBITMQ_URL || 'amqp://localhost:5672',
   },
@@ -11,6 +34,7 @@ const configuration = () => ({
       process.env.CHECKPOINT_QUEUE_NAME || 'checkpoint_events',
     prefetchCount: Number.parseInt(process.env.QUEUE_PREFETCH_COUNT || '5', 10),
   },
+
   jwt: {
     secret: process.env.JWT_SECRET!,
     expiration: process.env.JWT_EXPIRATION || '1h',

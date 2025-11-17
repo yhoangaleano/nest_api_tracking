@@ -1,6 +1,41 @@
 version: '3.8'
 
 services:
+  # PostgreSQL (nuevo - migración)
+  postgres:
+    image: postgres:16-alpine
+    container_name: tracking_postgres
+    restart: always
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_DB: tracking_db
+      POSTGRES_USER: tracking_user
+      POSTGRES_PASSWORD: tracking_pass
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U tracking_user -d tracking_db']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis (nuevo - cache)
+  redis:
+    image: redis:7-alpine
+    container_name: tracking_redis
+    restart: always
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # MongoDB (temporal - se eliminará después de migración)
   mongo:
     image: mongo:7
     container_name: tracking_mongo
@@ -14,6 +49,7 @@ services:
     volumes:
       - mongo_data:/data/db
 
+  # RabbitMQ (temporal - se eliminará en Fase 3)
   rabbitmq:
     image: rabbitmq:3-management
     container_name: tracking_rabbitmq
@@ -28,5 +64,7 @@ services:
       - rabbitmq_data:/var/lib/rabbitmq
 
 volumes:
+  postgres_data:
+  redis_data:
   mongo_data:
   rabbitmq_data:
