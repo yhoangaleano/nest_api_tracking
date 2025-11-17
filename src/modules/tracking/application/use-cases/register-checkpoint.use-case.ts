@@ -12,7 +12,7 @@ import {
   UNIT_CACHE_PORT_TOKEN,
 } from '../../domain';
 import { UNIT_STATE_ENUMERATION } from '../../domain/configs/unit-state.enum';
-import { StateTransitionValidatorService } from '../../domain/services/state-transition-validator.service';
+import { validateStateTransition } from '../../domain/configs/state-transitions';
 
 /**
  * Use case for registering checkpoints on existing units
@@ -34,7 +34,6 @@ export class RegisterCheckpointUseCase implements IRegisterCheckpointUseCase {
     private readonly unitRepository: IUnitRepository,
     @Inject(UNIT_CACHE_PORT_TOKEN)
     private readonly cachePort: IUnitCachePort,
-    private readonly stateValidator: StateTransitionValidatorService,
   ) {}
 
   async execute(data: CheckpointData): Promise<void> {
@@ -64,8 +63,8 @@ export class RegisterCheckpointUseCase implements IRegisterCheckpointUseCase {
       await this.cachePort.setUnitExists(data.trackingId, true);
     }
 
-    // Validate state transition
-    this.stateValidator.validateTransition(unit.currentState, data.status);
+    // Validate state transition using pure function
+    validateStateTransition(unit.currentState, data.status);
 
     // Calculate attempt number
     // If it's a retry of the same state, increment attempt_number
