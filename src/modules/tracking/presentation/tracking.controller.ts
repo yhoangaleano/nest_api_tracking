@@ -75,7 +75,10 @@ export class TrackingController {
   @Post('checkpoints')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Register a new checkpoint (synchronous)' })
-  @ApiResponse({ status: 200, description: 'Checkpoint registered successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Checkpoint registered successfully',
+  })
   @ApiResponse({ status: 400, description: 'Invalid data' })
   @ApiResponse({ status: 404, description: 'Unit not found' })
   async registerCheckpoint(
@@ -94,10 +97,14 @@ export class TrackingController {
       // Execute use case synchronously
       await this.registerCheckpointUseCase.execute(checkpointData);
 
-      this.logger.logWithMetadata('info', '✅ Checkpoint registered successfully', {
-        trackingId: dto.trackingId,
-        status: dto.status,
-      });
+      this.logger.logWithMetadata(
+        'info',
+        '✅ Checkpoint registered successfully',
+        {
+          trackingId: dto.trackingId,
+          status: dto.status,
+        },
+      );
 
       return {
         message: 'Checkpoint registered successfully',

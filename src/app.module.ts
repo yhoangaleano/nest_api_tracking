@@ -2,16 +2,18 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { MongooseModule } from '@nestjs/mongoose';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 // Own code imports
 import configuration from './config/configuration';
 import { envValidationSchema } from './config/env.validation';
+import { CoreModule } from './core/core.module';
 import { LoggerModule } from './core/logger/logger.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { JwtAuthGuard } from './modules/auth/presentation/guards/jwt-auth.guard';
 import { TrackingModule } from './modules/tracking/tracking.module';
+import { AppController, AdminController } from './app.controller';
+import { AppService } from './app.service';
 
 @Module({
   imports: [
@@ -26,15 +28,7 @@ import { TrackingModule } from './modules/tracking/tracking.module';
       },
     }),
 
-    // Database - MongoDB (temporal - migración en progreso)
-    MongooseModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        uri: configService.get<string>('database.url'),
-      }),
-    }),
-
-    // Database - PostgreSQL (nuevo)
+    // Database - PostgreSQL
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
@@ -51,14 +45,16 @@ import { TrackingModule } from './modules/tracking/tracking.module';
     }),
 
     // Core Modules
+    CoreModule,
     LoggerModule,
 
     // Feature Modules
     AuthModule,
     TrackingModule,
   ],
-  controllers: [],
+  controllers: [AppController, AdminController],
   providers: [
+    AppService,
     // Only enable JWT guard if DISABLE_AUTH is not 'true'
     // This allows E2E tests to run without authentication
     ...(process.env.DISABLE_AUTH === 'true'

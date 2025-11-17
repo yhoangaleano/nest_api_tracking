@@ -1,21 +1,13 @@
 // Framework imports
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { MongooseModule } from '@nestjs/mongoose';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 // Domain layer
 import { UNIT_REPOSITORY_TOKEN_CONSTANT } from './domain/repositories';
 import { UNIT_CACHE_PORT_TOKEN } from './domain/ports/cache';
 
-// Infrastructure layer - Persistence (MongoDB - temporal)
-// import { MongoUnitRepository } from './infrastructure/persistence/mongo-unit.repository';
-import {
-  UnitDocument,
-  UnitSchema,
-} from './infrastructure/persistence/unit.schema';
-
-// Infrastructure layer - Persistence (PostgreSQL - nuevo)
+// Infrastructure layer - Persistence (PostgreSQL)
 import {
   UnitEntity,
   CheckpointEntity,
@@ -34,13 +26,6 @@ import { TrackingController } from './presentation/tracking.controller';
 @Module({
   imports: [
     ConfigModule,
-
-    // MongoDB (temporal - migración en progreso)
-    MongooseModule.forFeature([
-      { name: UnitDocument.name, schema: UnitSchema },
-    ]),
-
-    // PostgreSQL (nuevo)
     TypeOrmModule.forFeature([UnitEntity, CheckpointEntity]),
   ],
   controllers: [TrackingController],

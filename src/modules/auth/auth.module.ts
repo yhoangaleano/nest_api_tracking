@@ -1,30 +1,30 @@
+// Framework imports
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
-import { MongooseModule } from '@nestjs/mongoose';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { PassportModule } from '@nestjs/passport';
 
+// Domain layer
 import { USER_REPOSITORY_TOKEN_CONSTANT } from './domain/user.repository';
 
+// Application layer
 import { LoginUseCase } from './application/use-cases/login.use-case';
 import { RefreshTokenUseCase } from './application/use-cases/refresh-token.use-case';
 import { RegisterUseCase } from './application/use-cases/register.use-case';
 
-import { MongoUserRepository } from './infrastructure/persistence/mongo-user.repository';
-import {
-  UserDocument,
-  UserSchema,
-} from './infrastructure/persistence/user.schema';
+// Infrastructure layer
+import { PostgresUserRepository } from './infrastructure/persistence/postgres-user.repository';
+import { UserEntity } from './infrastructure/persistence/entities';
 import { JwtService } from './infrastructure/jwt/jwt.service';
 import { JwtStrategy } from './infrastructure/jwt/jwt.strategy';
 
+// Presentation layer
 import { AuthController } from './presentation/auth.controller';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([
-      { name: UserDocument.name, schema: UserSchema },
-    ]),
+    TypeOrmModule.forFeature([UserEntity]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       inject: [ConfigService],
@@ -39,7 +39,7 @@ import { AuthController } from './presentation/auth.controller';
   providers: [
     {
       provide: USER_REPOSITORY_TOKEN_CONSTANT,
-      useClass: MongoUserRepository,
+      useClass: PostgresUserRepository,
     },
     JwtService,
     JwtStrategy,

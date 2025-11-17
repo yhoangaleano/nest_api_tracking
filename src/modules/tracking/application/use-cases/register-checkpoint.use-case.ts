@@ -90,7 +90,10 @@ export class RegisterCheckpointUseCase implements IRegisterCheckpointUseCase {
    * - If transitioning to a new state: attempt_number = 1
    * - If retrying the same state: attempt_number = last_attempt + 1
    */
-  private calculateAttemptNumber(unit: Unit, newStatus: UNIT_STATE_ENUMERATION): number {
+  private calculateAttemptNumber(
+    unit: Unit,
+    newStatus: UNIT_STATE_ENUMERATION,
+  ): number {
     // Find all checkpoints with the same status
     const checkpointsWithSameStatus = unit.checkpoints.filter(
       (cp) => cp.status === newStatus,

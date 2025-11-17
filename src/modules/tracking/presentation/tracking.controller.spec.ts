@@ -14,6 +14,7 @@ import {
   IRegisterCheckpointUseCase,
   CREATE_UNIT_USE_CASE_TOKEN,
   ICreateUnitUseCase,
+  Unit,
 } from '../domain'; // Corrected path
 import { LoggerService } from '../../../core/logger/logger.service';
 
@@ -27,19 +28,20 @@ describe('TrackingController', () => {
   beforeEach(async () => {
     mockRegisterCheckpointUseCase = {
       execute: jest.fn(),
-    };
+    } as jest.Mocked<IRegisterCheckpointUseCase>;
 
     mockGetTrackingHistoryUseCase = {
       execute: jest.fn(),
-    };
+    } as jest.Mocked<IGetTrackingHistoryUseCase>;
 
     mockListUnitsByStateUseCase = {
       execute: jest.fn(),
-    };
+    } as jest.Mocked<IListUnitsByStateUseCase>;
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     mockCreateUnitUseCase = {
       execute: jest.fn(),
-    };
+    } as jest.Mocked<ICreateUnitUseCase>;
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [TrackingController],
@@ -48,8 +50,11 @@ describe('TrackingController', () => {
           provide: REGISTER_CHECKPOINT_USE_CASE_TOKEN,
           useValue: mockRegisterCheckpointUseCase,
         },
+
         {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           provide: CREATE_UNIT_USE_CASE_TOKEN,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           useValue: mockCreateUnitUseCase,
         },
         {
@@ -107,20 +112,23 @@ describe('TrackingController', () => {
         checkpoints: [
           {
             status: UNIT_STATE_ENUMERATION.CREATED,
-            location: 'ORIGIN',
             timestamp: new Date(),
+            location: 'ORIGIN',
+            attemptNumber: 1,
             notes: 'created',
           },
           {
             status: UNIT_STATE_ENUMERATION.PICKED_UP,
-            location: 'WAREHOUSE',
             timestamp: new Date(),
+            location: 'WAREHOUSE',
+            attemptNumber: 1,
             notes: 'picked up',
           },
         ],
-      };
+        addCheckpoint: jest.fn(),
+      } as unknown as Unit;
 
-      mockGetTrackingHistoryUseCase.execute.mockResolvedValue(mockUnit as any);
+      mockGetTrackingHistoryUseCase.execute.mockResolvedValue(mockUnit);
 
       const result = await controller.getTrackingHistory(trackingId);
 
@@ -153,17 +161,21 @@ describe('TrackingController', () => {
       const mockUnits = [
         {
           id: 'id1',
-          trackingId: { value: 'TRK-12345' },
+          trackingId: 'TRK-12345',
           currentState: UNIT_STATE_ENUMERATION.IN_TRANSIT,
+          checkpoints: [],
+          addCheckpoint: jest.fn(),
         },
         {
           id: 'id2',
-          trackingId: { value: 'T-DEF-67890' },
+          trackingId: 'T-DEF-67890',
           currentState: UNIT_STATE_ENUMERATION.IN_TRANSIT,
+          checkpoints: [],
+          addCheckpoint: jest.fn(),
         },
-      ];
+      ] as unknown as Unit[];
 
-      mockListUnitsByStateUseCase.execute.mockResolvedValue(mockUnits as any);
+      mockListUnitsByStateUseCase.execute.mockResolvedValue(mockUnits);
 
       const result = await controller.listShipmentsByState(query);
 
