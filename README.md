@@ -170,22 +170,62 @@ docker run -d -e ENTRY_FILE=main.worker tracking-api            # Worker 3
 
 ## Pruebas
 
+El proyecto cuenta con una estrategia de testing completa que incluye pruebas unitarias, de integración y end-to-end.
+
+### Pruebas Unitarias
+
 ```bash
-# Ejecutar tests unitarios
+# Ejecutar todos los tests unitarios
 npm test
 
-# Tests con cobertura
+# Tests en modo watch (útil para desarrollo)
+npm run test:watch
+
+# Tests con reporte de cobertura
 npm run test:cov
+```
 
-# Tests e2e (requiere servicios corriendo)
+**Cobertura actual:**
+- ✅ **Domain Layer**: Entidades, Value Objects, y lógica de negocio (>90% coverage)
+- ✅ **Application Layer**: Casos de uso principales
+- ✅ **Unit Errors**: Validación de errores de dominio
+
+### Pruebas E2E
+
+Las pruebas end-to-end validan el flujo completo de la aplicación usando **Testcontainers** para MongoDB y RabbitMQ.
+
+```bash
+# Ejecutar pruebas E2E (levanta contenedores automáticamente)
 npm run test:e2e
+```
 
-# Linter
+**Cobertura E2E:**
+- ✅ Happy Path: Flujo completo de tracking (CREATED → PICKED_UP → IN_TRANSIT)
+- ✅ Error Path: Validación de transiciones de estado inválidas
+- ✅ Validación de DTOs: Formatos, enums y campos requeridos
+- ✅ Integración RabbitMQ: Flujo asíncrono productor-consumidor
+- ✅ Not Found: Manejo de recursos inexistentes
+
+**Requisitos para E2E:**
+- Docker instalado y corriendo
+- Puertos disponibles para MongoDB y RabbitMQ (asignados dinámicamente)
+
+### Calidad de Código
+
+```bash
+# Ejecutar linter (ESLint)
 npm run lint
 
-# Formatear código
+# Auto-fix de problemas de linting
+npm run lint:fix
+
+# Formatear código con Prettier
 npm run p:fix
 ```
+
+### Estrategia de Testing
+
+Para más detalles sobre la estrategia de pruebas y fases de implementación, consulta [`plan_pruebas.md`](./plan_pruebas.md).
 
 ## Endpoints principales
 
@@ -241,14 +281,25 @@ Respuesta: `202 Accepted`
 }
 ```
 
-Estados válidos:
+Estados válidos y transiciones permitidas:
 
-- `CREATED`
-- `PICKED_UP`
-- `IN_TRANSIT`
-- `OUT_FOR_DELIVERY`
-- `DELIVERED`
-- `FAILED`
+- `CREATED` → Estado inicial del paquete
+- `PICKED_UP` → Paquete recogido en origen
+- `IN_TRANSIT` → En tránsito hacia destino
+- `OUT_FOR_DELIVERY` → En reparto final
+- `DELIVERED` → Entregado exitosamente
+- `FAILED_DELIVERY` → Intento de entrega fallido
+- `RETURNED` → Devuelto al remitente
+
+**Transiciones válidas:**
+- CREATED → PICKED_UP
+- PICKED_UP → IN_TRANSIT
+- IN_TRANSIT → OUT_FOR_DELIVERY
+- OUT_FOR_DELIVERY → DELIVERED
+- OUT_FOR_DELIVERY → FAILED_DELIVERY
+- FAILED_DELIVERY → RETURNED
+
+**Nota:** El sistema valida las transiciones de estado. Intentar saltar estados (ej. CREATED → DELIVERED) resultará en un error 400.
 
 ### Consultas
 
@@ -318,25 +369,32 @@ src/
 │   │   └── presentation/   # Capa de entrada (Controller, DTOs, Guards)
 │   │
 │   └── tracking/           # Módulo de seguimiento de paquetes (corazón del negocio)
-│       ├── application/    # Casos de uso (registrar checkpoint, consultar historial)
 │       │
-│       ├── domain/         # Lógica de negocio del tracking
+│       ├── domain/         # Lógica de negocio del tracking (Clean Architecture - Hexagonal)
 │       │   ├── entities/       # Entidades de negocio (Unit, Checkpoint)
-│       │   ├── value-objects/  # Objetos de valor (TrackingId)
+│       │   ├── value-objects/  # Objetos de valor inmutables (TrackingId, CheckpointData, UnitStateQuery)
+│       │   ├── ports/          # Puertos (interfaces) - Hexagonal Architecture
+│       │   │   ├── use-cases/      # Input Ports (IRegisterCheckpoint, IGetTrackingHistory)
+│       │   │   └── messaging/      # Output Ports (ICheckpointProducer)
 │       │   ├── repositories/   # Contratos de repositorios (IUnitRepository)
-│       │   ├── ports/          # Puertos para casos de uso y comunicación externa (messaging)
-│       │   ├── exceptions/     # Errores de dominio personalizados
-│       │   └── configs/        # Constantes y enumeraciones del dominio (UnitState)
+│       │   ├── exceptions/     # Errores de dominio personalizados (UnitNotFoundError)
+│       │   └── configs/        # Constantes y enumeraciones del dominio (UnitState, reglas de negocio)
 │       │
-│       ├── infrastructure/ # Implementaciones de tecnología y servicios externos
-│       │   ├── persistence/    # Repositorio con MongoDB (MongoUnitRepository)
-│       │   ├── messaging/      # Productores y consumidores de RabbitMQ
-│       │   └── providers/      # Inyección de dependencias para casos de uso
+│       ├── application/    # Casos de uso - Implementan Input Ports del Domain
+│       │   └── use-cases/      # RegisterCheckpointUseCase, GetTrackingHistoryUseCase
 │       │
-│       └── presentation/   # Capa de entrada para el módulo de tracking
-│           ├── dtos/           # Data Transfer Objects para requests y responses
-│           ├── mappers/        # Mapeadores entre DTOs y entidades de dominio
-│           └── tracking.controller.ts # Controlador HTTP
+│       ├── infrastructure/ # Adaptadores - Implementan Output Ports del Domain
+│       │   ├── persistence/    # MongoDB Adapter (MongoUnitRepository + Schemas)
+│       │   │   └── configs/        # Constantes de persistencia (nombre de colección)
+│       │   ├── messaging/      # RabbitMQ Adapters (Producer, Consumer, Connection)
+│       │   │   ├── configs/        # Constantes de messaging (nombres de colas, retry)
+│       │   │   └── types/          # Tipos específicos de messaging
+│       │   └── providers/      # Configuración de inyección de dependencias
+│       │
+│       └── presentation/   # Capa de entrada HTTP - Adaptador de entrada
+│           ├── dtos/           # Data Transfer Objects para HTTP requests/responses
+│           ├── mappers/        # Mappers bidireccionales (DTO ↔ Value Objects ↔ Entities)
+│           └── tracking.controller.ts # Controlador REST API
 │
 └── shared/                 # Código compartido entre módulos
     └── domain/             # Elementos de dominio transversales (ej. DomainException base)
@@ -360,12 +418,39 @@ docs/
 
 ## Arquitectura
 
-El proyecto implementa **arquitectura limpia** con 4 capas:
+El proyecto implementa **Clean Architecture (Hexagonal Architecture)** con enfoque DDD (Domain-Driven Design):
 
-1. **Domain** (dominio): Lógica de negocio pura, entidades, errores de dominio.
-2. **Application** (aplicación): Casos de uso que orquestan el flujo.
-3. **Infrastructure** (infraestructura): Implementaciones concretas de tecnología (repositorios, colas).
-4. **Presentation** (presentación): Capa de entrada y salida (controllers, DTOs).
+### Capas y Responsabilidades
+
+1. **Domain** (núcleo hexagonal):
+   - **Entidades**: Lógica de negocio pura (Unit, Checkpoint)
+   - **Value Objects**: Objetos inmutables con validación (TrackingId, CheckpointData)
+   - **Ports**: Interfaces que definen contratos (Input Ports: Use Cases, Output Ports: Messaging, Repositories)
+   - **Exceptions**: Errores de dominio (UnitNotFoundError, InvalidStateTransitionError)
+   - **Reglas**: No depende de ninguna otra capa
+
+2. **Application** (orquestación):
+   - **Use Cases**: Implementan los Input Ports del Domain
+   - **Responsabilidad**: Coordinar el flujo entre Domain e Infrastructure
+   - **Independencia**: No conoce detalles de tecnología (HTTP, DB, queues)
+
+3. **Infrastructure** (adaptadores de salida):
+   - **Persistence**: Implementa repositorios usando MongoDB
+   - **Messaging**: Implementa ICheckpointProducer usando RabbitMQ
+   - **Providers**: Configuración de inyección de dependencias
+   - **Cada subcapa tiene sus propias configs**: Separación de concerns
+
+4. **Presentation** (adaptadores de entrada):
+   - **Controllers**: Exponen casos de uso vía HTTP/REST
+   - **DTOs**: Contratos de entrada/salida de la API
+   - **Mappers**: Transforman DTOs ↔ Value Objects ↔ Entities
+
+### Principios aplicados
+
+- ✅ **Dependency Rule**: Las dependencias apuntan hacia adentro (Infrastructure → Domain, nunca al revés)
+- ✅ **Ports & Adapters**: Domain define interfaces (Ports), Infrastructure las implementa (Adapters)
+- ✅ **DDD con Value Objects**: Objetos inmutables con validación de negocio
+- ✅ **Separation of Concerns**: Cada capa tiene configs propios (domain/configs, infrastructure/*/configs)
 
 ### Flujo asíncrono
 

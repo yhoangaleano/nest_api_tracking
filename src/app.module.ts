@@ -42,10 +42,16 @@ import { TrackingModule } from './modules/tracking/tracking.module';
   ],
   controllers: [],
   providers: [
-    {
-      provide: APP_GUARD,
-      useClass: JwtAuthGuard,
-    },
+    // Only enable JWT guard if DISABLE_AUTH is not 'true'
+    // This allows E2E tests to run without authentication
+    ...(process.env.DISABLE_AUTH === 'true'
+      ? []
+      : [
+          {
+            provide: APP_GUARD,
+            useClass: JwtAuthGuard,
+          },
+        ]),
   ],
 })
 export class AppModule {}

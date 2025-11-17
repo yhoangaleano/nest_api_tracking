@@ -1,5 +1,6 @@
 // Framework imports
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -32,6 +33,7 @@ import {
 // Domain layer
 import {
   UnitNotFoundError,
+  InvalidValueObjectError,
   IGetTrackingHistoryUseCase,
   IListUnitsByStateUseCase,
   ICheckpointProducer,
@@ -107,6 +109,10 @@ export class TrackingController {
       if (error instanceof UnitNotFoundError) {
         this.logger.warn(`Unit not found: ${trackingId}`);
         throw new NotFoundException(error.message);
+      }
+      if (error instanceof InvalidValueObjectError) {
+        this.logger.warn(`Invalid tracking ID format: ${trackingId}`);
+        throw new BadRequestException(error.message);
       }
       this.logger.error(
         `Error retrieving tracking history for: ${trackingId}`,
