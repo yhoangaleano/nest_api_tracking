@@ -15,11 +15,6 @@ export const envValidationSchema = Joi.object({
   // Database
   DATABASE_URL: Joi.string().required(),
 
-  // RabbitMQ
-  RABBITMQ_URL: Joi.string().required(),
-  CHECKPOINT_QUEUE_NAME: Joi.string().default('checkpoint_events'),
-  QUEUE_PREFETCH_COUNT: Joi.number().integer().min(1).max(100).default(5),
-
   // JWT
   JWT_SECRET: Joi.string().min(32).required(),
   JWT_EXPIRATION: Joi.string().default('1h'),

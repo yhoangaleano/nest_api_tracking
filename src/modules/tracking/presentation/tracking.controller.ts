@@ -123,6 +123,7 @@ export class TrackingController {
     }
   }
 
+  @Public()
   @Get('tracking/:trackingId')
   @ApiOperation({ summary: 'Get complete tracking history' })
   @ApiResponse({
@@ -166,6 +167,7 @@ export class TrackingController {
     }
   }
 
+  @Public()
   @Get('shipments')
   @ApiOperation({ summary: 'List units by state' })
   @ApiResponse({

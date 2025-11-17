@@ -62,19 +62,19 @@ export class PostgresUnitRepository implements IUnitRepository {
         return !existingCheckpointKeys.has(key);
       });
 
-      // Save new checkpoints
+      // Add new checkpoints to the unit's collection (cascade will handle save)
       for (const checkpoint of newCheckpoints) {
         const checkpointEntity = this.checkpointRepository.create({
-          unitId: existingEntity.id,
           status: checkpoint.status,
           attemptNumber: checkpoint.attemptNumber,
           location: checkpoint.location,
           timestamp: checkpoint.timestamp,
           notes: checkpoint.notes,
         });
-        await this.checkpointRepository.save(checkpointEntity);
+        existingEntity.checkpoints.push(checkpointEntity);
       }
 
+      // Save unit with new checkpoints (cascade)
       const savedEntity = await this.unitRepository.save(existingEntity);
       const reloaded = await this.unitRepository.findOne({
         where: { id: savedEntity.id },
@@ -94,20 +94,21 @@ export class PostgresUnitRepository implements IUnitRepository {
         currentState: unit.currentState,
       });
 
-      const savedUnit = await this.unitRepository.save(newEntity);
-
-      // Save checkpoints
-      for (const checkpoint of unit.checkpoints) {
-        const checkpointEntity = this.checkpointRepository.create({
-          unitId: savedUnit.id,
+      // Create checkpoints and add to unit's collection
+      const checkpointEntities = unit.checkpoints.map((checkpoint) =>
+        this.checkpointRepository.create({
           status: checkpoint.status,
           attemptNumber: checkpoint.attemptNumber,
           location: checkpoint.location,
           timestamp: checkpoint.timestamp,
           notes: checkpoint.notes,
-        });
-        await this.checkpointRepository.save(checkpointEntity);
-      }
+        }),
+      );
+
+      newEntity.checkpoints = checkpointEntities;
+
+      // Save unit with checkpoints (cascade)
+      const savedUnit = await this.unitRepository.save(newEntity);
 
       const reloaded = await this.unitRepository.findOne({
         where: { id: savedUnit.id },

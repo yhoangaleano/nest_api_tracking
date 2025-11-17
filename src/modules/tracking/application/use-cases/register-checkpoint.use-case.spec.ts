@@ -5,12 +5,14 @@ import {
   CheckpointData,
   InvalidStateTransitionError,
   IUnitRepository,
+  IUnitCachePort,
 } from '../../domain';
 import { UNIT_STATE_ENUMERATION } from '../../domain/configs';
 
 describe('register checkpoint use case', () => {
   let useCase: RegisterCheckpointUseCase;
   let mockRepository: jest.Mocked<IUnitRepository>;
+  let mockCachePort: jest.Mocked<IUnitCachePort>;
 
   beforeEach(() => {
     mockRepository = {
@@ -19,8 +21,14 @@ describe('register checkpoint use case', () => {
       findByState: jest.fn(),
     } as jest.Mocked<IUnitRepository>;
 
+    mockCachePort = {
+      invalidateUnit: jest.fn(),
+      getUnit: jest.fn(),
+      setUnit: jest.fn(),
+    } as jest.Mocked<IUnitCachePort>;
+
     // Plain class instantiation - no NestJS DI needed
-    useCase = new RegisterCheckpointUseCase(mockRepository);
+    useCase = new RegisterCheckpointUseCase(mockRepository, mockCachePort);
   });
 
   afterEach(() => {
@@ -350,26 +358,26 @@ describe('register checkpoint use case', () => {
       await useCase.execute(
         CheckpointData.create(
           trackingId,
-          UNIT_STATE_ENUMERATION.FAILED_DELIVERY,
+          UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY_EXCEPTION,
           'CUSTOMER_ADDRESS',
           new Date().toISOString(),
           'Customer not available',
         ),
       );
       expect((currentUnit as unknown as Unit).currentState).toBe(
-        UNIT_STATE_ENUMERATION.FAILED_DELIVERY,
+        UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY_EXCEPTION,
       );
 
       await useCase.execute(
         CheckpointData.create(
           trackingId,
-          UNIT_STATE_ENUMERATION.RETURNED,
+          UNIT_STATE_ENUMERATION.AT_FACILITY,
           'WAREHOUSE',
           new Date().toISOString(),
         ),
       );
       expect((currentUnit as unknown as Unit).currentState).toBe(
-        UNIT_STATE_ENUMERATION.RETURNED,
+        UNIT_STATE_ENUMERATION.AT_FACILITY,
       );
       expect((currentUnit as unknown as Unit).checkpoints).toHaveLength(5);
     });

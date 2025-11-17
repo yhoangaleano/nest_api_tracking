@@ -51,6 +51,7 @@ describe('unit entity', () => {
         UNIT_STATE_ENUMERATION.PICKED_UP,
         'WAREHOUSE_A',
         new Date(),
+        1,
         'Package picked up from warehouse',
       );
 
@@ -204,14 +205,14 @@ describe('unit entity', () => {
       );
       unit.addCheckpoint(
         Checkpoint.create(
-          UNIT_STATE_ENUMERATION.FAILED_DELIVERY,
+          UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY_EXCEPTION,
           'CUSTOMER_ADDRESS',
           new Date(),
         ),
       );
       unit.addCheckpoint(
         Checkpoint.create(
-          UNIT_STATE_ENUMERATION.RETURNED,
+          UNIT_STATE_ENUMERATION.AT_FACILITY,
           'WAREHOUSE_A',
           new Date(),
         ),
@@ -226,7 +227,7 @@ describe('unit entity', () => {
       expect(() => unit.addCheckpoint(checkpoint)).toThrow(
         InvalidStateTransitionError,
       );
-      expect(unit.currentState).toBe(UNIT_STATE_ENUMERATION.RETURNED);
+      expect(unit.currentState).toBe(UNIT_STATE_ENUMERATION.AT_FACILITY);
     });
 
     it('should maintain checkpoint order chronologically', () => {
@@ -279,18 +280,18 @@ describe('unit entity', () => {
         [UNIT_STATE_ENUMERATION.PICKED_UP]: [UNIT_STATE_ENUMERATION.IN_TRANSIT],
         [UNIT_STATE_ENUMERATION.IN_TRANSIT]: [
           UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY,
-          UNIT_STATE_ENUMERATION.FAILED_DELIVERY,
+          UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY_EXCEPTION,
         ],
         [UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY]: [
           UNIT_STATE_ENUMERATION.DELIVERED,
-          UNIT_STATE_ENUMERATION.FAILED_DELIVERY,
+          UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY_EXCEPTION,
         ],
         [UNIT_STATE_ENUMERATION.DELIVERED]: [],
-        [UNIT_STATE_ENUMERATION.FAILED_DELIVERY]: [
-          UNIT_STATE_ENUMERATION.RETURNED,
+        [UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY_EXCEPTION]: [
+          UNIT_STATE_ENUMERATION.AT_FACILITY,
           UNIT_STATE_ENUMERATION.IN_TRANSIT,
         ],
-        [UNIT_STATE_ENUMERATION.RETURNED]: [],
+        [UNIT_STATE_ENUMERATION.AT_FACILITY]: [],
       };
 
       for (const [fromState, allowedToStates] of Object.entries(
@@ -409,18 +410,18 @@ function getPathToState(
       UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY,
       UNIT_STATE_ENUMERATION.DELIVERED,
     ],
-    [UNIT_STATE_ENUMERATION.FAILED_DELIVERY]: [
+    [UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY_EXCEPTION]: [
       UNIT_STATE_ENUMERATION.CREATED,
       UNIT_STATE_ENUMERATION.PICKED_UP,
       UNIT_STATE_ENUMERATION.IN_TRANSIT,
-      UNIT_STATE_ENUMERATION.FAILED_DELIVERY,
+      UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY_EXCEPTION,
     ],
-    [UNIT_STATE_ENUMERATION.RETURNED]: [
+    [UNIT_STATE_ENUMERATION.AT_FACILITY]: [
       UNIT_STATE_ENUMERATION.CREATED,
       UNIT_STATE_ENUMERATION.PICKED_UP,
       UNIT_STATE_ENUMERATION.IN_TRANSIT,
-      UNIT_STATE_ENUMERATION.FAILED_DELIVERY,
-      UNIT_STATE_ENUMERATION.RETURNED,
+      UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY_EXCEPTION,
+      UNIT_STATE_ENUMERATION.AT_FACILITY,
     ],
   };
 

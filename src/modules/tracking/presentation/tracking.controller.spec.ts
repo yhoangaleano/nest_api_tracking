@@ -8,24 +8,25 @@ import { UnitNotFoundError } from '../domain/exceptions/unit.errors'; // Correct
 import {
   GET_TRACKING_HISTORY_USE_CASE_TOKEN,
   LIST_UNITS_BY_STATE_USE_CASE_TOKEN,
+  REGISTER_CHECKPOINT_USE_CASE_TOKEN,
   IGetTrackingHistoryUseCase,
   IListUnitsByStateUseCase,
-} from '../domain/ports/use-cases'; // Corrected path
-import {
-  ICheckpointProducer,
-  CHECKPOINT_PRODUCER_TOKEN,
-} from '../domain/ports/messaging'; // Corrected path
+  IRegisterCheckpointUseCase,
+  CREATE_UNIT_USE_CASE_TOKEN,
+  ICreateUnitUseCase,
+} from '../domain'; // Corrected path
 import { LoggerService } from '../../../core/logger/logger.service';
 
 describe('TrackingController', () => {
   let controller: TrackingController;
-  let mockCheckpointProducer: jest.Mocked<ICheckpointProducer>;
+  let mockRegisterCheckpointUseCase: jest.Mocked<IRegisterCheckpointUseCase>;
   let mockGetTrackingHistoryUseCase: jest.Mocked<IGetTrackingHistoryUseCase>;
   let mockListUnitsByStateUseCase: jest.Mocked<IListUnitsByStateUseCase>;
+  let mockCreateUnitUseCase: jest.Mocked<ICreateUnitUseCase>;
 
   beforeEach(async () => {
-    mockCheckpointProducer = {
-      publish: jest.fn(),
+    mockRegisterCheckpointUseCase = {
+      execute: jest.fn(),
     };
 
     mockGetTrackingHistoryUseCase = {
@@ -36,12 +37,20 @@ describe('TrackingController', () => {
       execute: jest.fn(),
     };
 
+    mockCreateUnitUseCase = {
+      execute: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [TrackingController],
       providers: [
         {
-          provide: CHECKPOINT_PRODUCER_TOKEN,
-          useValue: mockCheckpointProducer,
+          provide: REGISTER_CHECKPOINT_USE_CASE_TOKEN,
+          useValue: mockRegisterCheckpointUseCase,
+        },
+        {
+          provide: CREATE_UNIT_USE_CASE_TOKEN,
+          useValue: mockCreateUnitUseCase,
         },
         {
           provide: GET_TRACKING_HISTORY_USE_CASE_TOKEN,
@@ -69,7 +78,7 @@ describe('TrackingController', () => {
   });
 
   describe('POST /checkpoints', () => {
-    it('should register checkpoint successfully and return accepted message', () => {
+    it('should register checkpoint successfully and return success message', async () => {
       const dto: RegisterCheckpointDto = {
         trackingId: 'TRK-12345',
         status: UNIT_STATE_ENUMERATION.PICKED_UP,
@@ -77,11 +86,13 @@ describe('TrackingController', () => {
         timestamp: new Date().toISOString(),
       };
 
-      const result = controller.registerCheckpoint(dto);
+      mockRegisterCheckpointUseCase.execute.mockResolvedValue(undefined);
 
-      expect(mockCheckpointProducer.publish).toHaveBeenCalled();
+      const result = await controller.registerCheckpoint(dto);
+
+      expect(mockRegisterCheckpointUseCase.execute).toHaveBeenCalled();
       expect(result).toEqual({
-        message: 'Checkpoint received and queued for processing.',
+        message: 'Checkpoint registered successfully',
       });
     });
   });

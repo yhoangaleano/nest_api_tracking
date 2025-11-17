@@ -137,9 +137,10 @@ describe('GetTrackingHistoryUseCase', () => {
       );
       unit.addCheckpoint(
         Checkpoint.create(
-          UNIT_STATE_ENUMERATION.FAILED_DELIVERY,
+          UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY_EXCEPTION,
           'CUSTOMER',
           new Date(),
+          1,
           'First attempt failed',
         ),
       );
@@ -148,6 +149,7 @@ describe('GetTrackingHistoryUseCase', () => {
           UNIT_STATE_ENUMERATION.IN_TRANSIT,
           'TRUCK',
           new Date(),
+          1,
           'Second attempt',
         ),
       );
@@ -218,9 +220,10 @@ describe('GetTrackingHistoryUseCase', () => {
         );
         unit.addCheckpoint(
           Checkpoint.create(
-            UNIT_STATE_ENUMERATION.FAILED_DELIVERY,
+            UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY_EXCEPTION,
             `CUSTOMER_${i}`,
             new Date(),
+            i + 1,
             `Attempt ${i + 1} failed`,
           ),
         );

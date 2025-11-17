@@ -25,16 +25,6 @@ const configuration = () => ({
     url: process.env.DATABASE_URL || 'mongodb://localhost:27017/tracking_db',
   },
 
-  // RabbitMQ (temporal - se eliminará en Fase 3)
-  rabbitmq: {
-    url: process.env.RABBITMQ_URL || 'amqp://localhost:5672',
-  },
-  queue: {
-    checkpointQueueName:
-      process.env.CHECKPOINT_QUEUE_NAME || 'checkpoint_events',
-    prefetchCount: Number.parseInt(process.env.QUEUE_PREFETCH_COUNT || '5', 10),
-  },
-
   jwt: {
     secret: process.env.JWT_SECRET!,
     expiration: process.env.JWT_EXPIRATION || '1h',
