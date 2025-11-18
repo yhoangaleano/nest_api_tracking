@@ -4,6 +4,7 @@ import {
   Unit,
   CheckpointData,
   InvalidStateTransitionError,
+  UnitNotFoundError,
   IUnitRepository,
   IUnitCachePort,
 } from '../../domain';
@@ -25,6 +26,9 @@ describe('register checkpoint use case', () => {
       invalidateUnit: jest.fn(),
       getUnit: jest.fn(),
       setUnit: jest.fn(),
+      getUnitExists: jest.fn(),
+      setUnitExists: jest.fn(),
+      clearAll: jest.fn(),
     } as jest.Mocked<IUnitCachePort>;
 
     // Plain class instantiation - no NestJS DI needed
@@ -36,7 +40,7 @@ describe('register checkpoint use case', () => {
   });
 
   describe('execute', () => {
-    it('should create new unit when tracking ID does not exist', async () => {
+    it('should throw UnitNotFoundError when tracking ID does not exist', async () => {
       const checkpointData = CheckpointData.create(
         'TRK-12345',
         UNIT_STATE_ENUMERATION.PICKED_UP,
@@ -44,18 +48,21 @@ describe('register checkpoint use case', () => {
         new Date().toISOString(),
       );
 
+      mockCachePort.getUnitExists.mockResolvedValue(null);
       mockRepository.findByTrackingId.mockResolvedValue(null);
-      mockRepository.save.mockImplementation((unit) => Promise.resolve(unit));
 
-      await useCase.execute(checkpointData);
+      await expect(useCase.execute(checkpointData)).rejects.toThrow(
+        UnitNotFoundError,
+      );
 
       expect(mockRepository.findByTrackingId).toHaveBeenCalledWith(
         checkpointData.trackingId,
       );
-      expect(mockRepository.save).toHaveBeenCalledTimes(1);
-      const savedUnit = mockRepository.save.mock.calls[0]![0];
-      expect(savedUnit.trackingId).toBe(checkpointData.trackingId);
-      expect(savedUnit.currentState).toBe(UNIT_STATE_ENUMERATION.PICKED_UP);
+      expect(mockRepository.save).not.toHaveBeenCalled();
+      expect(mockCachePort.setUnitExists).toHaveBeenCalledWith(
+        checkpointData.trackingId,
+        false,
+      );
     });
 
     it('should add checkpoint to existing unit', async () => {
@@ -69,6 +76,7 @@ describe('register checkpoint use case', () => {
         new Date().toISOString(),
       );
 
+      mockCachePort.getUnitExists.mockResolvedValue(null);
       mockRepository.findByTrackingId.mockResolvedValue(existingUnit);
       mockRepository.save.mockImplementation((unit) => Promise.resolve(unit));
 
@@ -86,6 +94,7 @@ describe('register checkpoint use case', () => {
       const trackingId = 'T-ABC-12345';
       let currentUnit = Unit.create(trackingId);
 
+      mockCachePort.getUnitExists.mockResolvedValue(null);
       mockRepository.findByTrackingId.mockResolvedValue(currentUnit);
       mockRepository.save.mockImplementation((unit) => {
         currentUnit = unit;
@@ -123,6 +132,7 @@ describe('register checkpoint use case', () => {
       const existingUnit = Unit.create(trackingId);
       const notes = 'Package handled with special care';
 
+      mockCachePort.getUnitExists.mockResolvedValue(null);
       mockRepository.findByTrackingId.mockResolvedValue(existingUnit);
       mockRepository.save.mockImplementation((unit) => Promise.resolve(unit));
 
@@ -147,6 +157,7 @@ describe('register checkpoint use case', () => {
       const trackingId = 'T-ABC-12345';
       const existingUnit = Unit.create(trackingId);
 
+      mockCachePort.getUnitExists.mockResolvedValue(null);
       mockRepository.findByTrackingId.mockResolvedValue(existingUnit);
 
       const checkpointData = CheckpointData.create(
@@ -171,6 +182,7 @@ describe('register checkpoint use case', () => {
         new Date().toISOString(),
       );
 
+      mockCachePort.getUnitExists.mockResolvedValue(null);
       mockRepository.findByTrackingId.mockRejectedValue(
         new Error('Database connection failed'),
       );
@@ -186,6 +198,7 @@ describe('register checkpoint use case', () => {
       const trackingId = 'T-ABC-12345';
       const existingUnit = Unit.create(trackingId);
 
+      mockCachePort.getUnitExists.mockResolvedValue(null);
       mockRepository.findByTrackingId.mockResolvedValue(existingUnit);
       mockRepository.save.mockRejectedValue(new Error('Database write failed'));
 
@@ -206,6 +219,7 @@ describe('register checkpoint use case', () => {
       const existingUnit = Unit.create(trackingId);
       const isoTimestamp = '2025-01-12T10:30:00.000Z';
 
+      mockCachePort.getUnitExists.mockResolvedValue(null);
       mockRepository.findByTrackingId.mockResolvedValue(existingUnit);
       mockRepository.save.mockImplementation((unit) => Promise.resolve(unit));
 
@@ -230,6 +244,7 @@ describe('register checkpoint use case', () => {
       const trackingId = 'T-ABC-12345';
       let currentUnit = Unit.create(trackingId);
 
+      mockCachePort.getUnitExists.mockResolvedValue(null);
       mockRepository.findByTrackingId.mockImplementation(() =>
         Promise.resolve(currentUnit),
       );
@@ -247,7 +262,7 @@ describe('register checkpoint use case', () => {
       const states = [
         UNIT_STATE_ENUMERATION.PICKED_UP,
         UNIT_STATE_ENUMERATION.IN_TRANSIT,
-        UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY,
+        UNIT_STATE_ENUMERATION.AT_FACILITY,
       ];
 
       for (let i = 0; i < timestamps.length; i++) {
@@ -266,8 +281,9 @@ describe('register checkpoint use case', () => {
 
     it('should handle complete delivery flow', async () => {
       const trackingId = 'T-FLOW-12345';
-      let currentUnit: Unit | null = null;
+      let currentUnit = Unit.create(trackingId);
 
+      mockCachePort.getUnitExists.mockResolvedValue(null);
       mockRepository.findByTrackingId.mockImplementation(() =>
         Promise.resolve(currentUnit),
       );
@@ -276,6 +292,7 @@ describe('register checkpoint use case', () => {
         return Promise.resolve(unit);
       });
 
+      // CREATED → PICKED_UP
       await useCase.execute(
         CheckpointData.create(
           trackingId,
@@ -288,6 +305,7 @@ describe('register checkpoint use case', () => {
         UNIT_STATE_ENUMERATION.PICKED_UP,
       );
 
+      // PICKED_UP → IN_TRANSIT
       await useCase.execute(
         CheckpointData.create(
           trackingId,
@@ -300,36 +318,52 @@ describe('register checkpoint use case', () => {
         UNIT_STATE_ENUMERATION.IN_TRANSIT,
       );
 
+      // IN_TRANSIT → AT_FACILITY
+      await useCase.execute(
+        CheckpointData.create(
+          trackingId,
+          UNIT_STATE_ENUMERATION.AT_FACILITY,
+          'DISTRIBUTION_CENTER',
+          new Date('2025-01-12T11:00:00Z').toISOString(),
+        ),
+      );
+      expect((currentUnit as unknown as Unit).currentState).toBe(
+        UNIT_STATE_ENUMERATION.AT_FACILITY,
+      );
+
+      // AT_FACILITY → OUT_FOR_DELIVERY
       await useCase.execute(
         CheckpointData.create(
           trackingId,
           UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY,
           'VAN_B456',
-          new Date('2025-01-12T11:00:00Z').toISOString(),
+          new Date('2025-01-12T12:00:00Z').toISOString(),
         ),
       );
       expect((currentUnit as unknown as Unit).currentState).toBe(
         UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY,
       );
 
+      // OUT_FOR_DELIVERY → DELIVERED
       await useCase.execute(
         CheckpointData.create(
           trackingId,
           UNIT_STATE_ENUMERATION.DELIVERED,
           'CUSTOMER_ADDRESS',
-          new Date('2025-01-12T12:00:00Z').toISOString(),
+          new Date('2025-01-12T13:00:00Z').toISOString(),
         ),
       );
       expect((currentUnit as unknown as Unit).currentState).toBe(
         UNIT_STATE_ENUMERATION.DELIVERED,
       );
-      expect((currentUnit as unknown as Unit).checkpoints).toHaveLength(5);
+      expect((currentUnit as unknown as Unit).checkpoints).toHaveLength(6);
     });
 
     it('should handle failed delivery with return flow', async () => {
       const trackingId = 'T-RETURN-12345';
-      let currentUnit: Unit | null = null;
+      let currentUnit = Unit.create(trackingId);
 
+      mockCachePort.getUnitExists.mockResolvedValue(null);
       mockRepository.findByTrackingId.mockImplementation(() =>
         Promise.resolve(currentUnit),
       );
@@ -338,6 +372,7 @@ describe('register checkpoint use case', () => {
         return Promise.resolve(unit);
       });
 
+      // CREATED → PICKED_UP
       await useCase.execute(
         CheckpointData.create(
           trackingId,
@@ -346,6 +381,8 @@ describe('register checkpoint use case', () => {
           new Date().toISOString(),
         ),
       );
+
+      // PICKED_UP → IN_TRANSIT
       await useCase.execute(
         CheckpointData.create(
           trackingId,
@@ -355,6 +392,27 @@ describe('register checkpoint use case', () => {
         ),
       );
 
+      // IN_TRANSIT → AT_FACILITY
+      await useCase.execute(
+        CheckpointData.create(
+          trackingId,
+          UNIT_STATE_ENUMERATION.AT_FACILITY,
+          'DISTRIBUTION_CENTER',
+          new Date().toISOString(),
+        ),
+      );
+
+      // AT_FACILITY → OUT_FOR_DELIVERY
+      await useCase.execute(
+        CheckpointData.create(
+          trackingId,
+          UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY,
+          'VAN',
+          new Date().toISOString(),
+        ),
+      );
+
+      // OUT_FOR_DELIVERY → OUT_FOR_DELIVERY_EXCEPTION (delivery failed)
       await useCase.execute(
         CheckpointData.create(
           trackingId,
@@ -368,18 +426,20 @@ describe('register checkpoint use case', () => {
         UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY_EXCEPTION,
       );
 
+      // OUT_FOR_DELIVERY_EXCEPTION → OUT_FOR_DELIVERY (retry delivery)
       await useCase.execute(
         CheckpointData.create(
           trackingId,
-          UNIT_STATE_ENUMERATION.AT_FACILITY,
-          'WAREHOUSE',
+          UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY,
+          'VAN',
           new Date().toISOString(),
+          'Second attempt',
         ),
       );
       expect((currentUnit as unknown as Unit).currentState).toBe(
-        UNIT_STATE_ENUMERATION.AT_FACILITY,
+        UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY,
       );
-      expect((currentUnit as unknown as Unit).checkpoints).toHaveLength(5);
+      expect((currentUnit as unknown as Unit).checkpoints).toHaveLength(7);
     });
   });
 });

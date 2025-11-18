@@ -146,6 +146,7 @@ describe('unit entity', () => {
 
     it('should reject transition from final state DELIVERED', () => {
       const unit = Unit.create('T-ABC-12345');
+      // CREATED → PICKED_UP
       unit.addCheckpoint(
         Checkpoint.create(
           UNIT_STATE_ENUMERATION.PICKED_UP,
@@ -153,6 +154,7 @@ describe('unit entity', () => {
           new Date(),
         ),
       );
+      // PICKED_UP → IN_TRANSIT
       unit.addCheckpoint(
         Checkpoint.create(
           UNIT_STATE_ENUMERATION.IN_TRANSIT,
@@ -160,6 +162,15 @@ describe('unit entity', () => {
           new Date(),
         ),
       );
+      // IN_TRANSIT → AT_FACILITY
+      unit.addCheckpoint(
+        Checkpoint.create(
+          UNIT_STATE_ENUMERATION.AT_FACILITY,
+          'DISTRIBUTION_CENTER',
+          new Date(),
+        ),
+      );
+      // AT_FACILITY → OUT_FOR_DELIVERY
       unit.addCheckpoint(
         Checkpoint.create(
           UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY,
@@ -167,6 +178,7 @@ describe('unit entity', () => {
           new Date(),
         ),
       );
+      // OUT_FOR_DELIVERY → DELIVERED
       unit.addCheckpoint(
         Checkpoint.create(
           UNIT_STATE_ENUMERATION.DELIVERED,
@@ -187,8 +199,9 @@ describe('unit entity', () => {
       expect(unit.currentState).toBe(UNIT_STATE_ENUMERATION.DELIVERED);
     });
 
-    it('should reject transition from final state RETURNED', () => {
+    it('should reject invalid transition from exception state', () => {
       const unit = Unit.create('T-ABC-12345');
+      // CREATED → PICKED_UP
       unit.addCheckpoint(
         Checkpoint.create(
           UNIT_STATE_ENUMERATION.PICKED_UP,
@@ -196,6 +209,7 @@ describe('unit entity', () => {
           new Date(),
         ),
       );
+      // PICKED_UP → IN_TRANSIT
       unit.addCheckpoint(
         Checkpoint.create(
           UNIT_STATE_ENUMERATION.IN_TRANSIT,
@@ -203,6 +217,23 @@ describe('unit entity', () => {
           new Date(),
         ),
       );
+      // IN_TRANSIT → AT_FACILITY
+      unit.addCheckpoint(
+        Checkpoint.create(
+          UNIT_STATE_ENUMERATION.AT_FACILITY,
+          'DISTRIBUTION_CENTER',
+          new Date(),
+        ),
+      );
+      // AT_FACILITY → OUT_FOR_DELIVERY
+      unit.addCheckpoint(
+        Checkpoint.create(
+          UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY,
+          'VAN',
+          new Date(),
+        ),
+      );
+      // OUT_FOR_DELIVERY → OUT_FOR_DELIVERY_EXCEPTION
       unit.addCheckpoint(
         Checkpoint.create(
           UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY_EXCEPTION,
@@ -210,14 +241,8 @@ describe('unit entity', () => {
           new Date(),
         ),
       );
-      unit.addCheckpoint(
-        Checkpoint.create(
-          UNIT_STATE_ENUMERATION.AT_FACILITY,
-          'WAREHOUSE_A',
-          new Date(),
-        ),
-      );
 
+      // Try invalid transition: OUT_FOR_DELIVERY_EXCEPTION → PICKED_UP
       const checkpoint = Checkpoint.create(
         UNIT_STATE_ENUMERATION.PICKED_UP,
         'WAREHOUSE_A',
@@ -227,7 +252,9 @@ describe('unit entity', () => {
       expect(() => unit.addCheckpoint(checkpoint)).toThrow(
         InvalidStateTransitionError,
       );
-      expect(unit.currentState).toBe(UNIT_STATE_ENUMERATION.AT_FACILITY);
+      expect(unit.currentState).toBe(
+        UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY_EXCEPTION,
+      );
     });
 
     it('should maintain checkpoint order chronologically', () => {
@@ -259,6 +286,7 @@ describe('unit entity', () => {
         UNIT_STATE_ENUMERATION.PICKED_UP,
         'WAREHOUSE_A',
         new Date(),
+        1,
         notes,
       );
 
@@ -277,21 +305,40 @@ describe('unit entity', () => {
         UNIT_STATE_ENUMERATION[]
       > = {
         [UNIT_STATE_ENUMERATION.CREATED]: [UNIT_STATE_ENUMERATION.PICKED_UP],
-        [UNIT_STATE_ENUMERATION.PICKED_UP]: [UNIT_STATE_ENUMERATION.IN_TRANSIT],
+        [UNIT_STATE_ENUMERATION.PICKED_UP]: [
+          UNIT_STATE_ENUMERATION.IN_TRANSIT,
+          UNIT_STATE_ENUMERATION.PICKED_UP_EXCEPTION,
+        ],
         [UNIT_STATE_ENUMERATION.IN_TRANSIT]: [
+          UNIT_STATE_ENUMERATION.AT_FACILITY,
+          UNIT_STATE_ENUMERATION.IN_TRANSIT_EXCEPTION,
+        ],
+        [UNIT_STATE_ENUMERATION.AT_FACILITY]: [
           UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY,
-          UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY_EXCEPTION,
+          UNIT_STATE_ENUMERATION.AT_FACILITY_EXCEPTION,
         ],
         [UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY]: [
           UNIT_STATE_ENUMERATION.DELIVERED,
           UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY_EXCEPTION,
         ],
         [UNIT_STATE_ENUMERATION.DELIVERED]: [],
-        [UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY_EXCEPTION]: [
-          UNIT_STATE_ENUMERATION.AT_FACILITY,
+        // Exception states
+        [UNIT_STATE_ENUMERATION.PICKED_UP_EXCEPTION]: [
+          UNIT_STATE_ENUMERATION.PICKED_UP,
           UNIT_STATE_ENUMERATION.IN_TRANSIT,
         ],
-        [UNIT_STATE_ENUMERATION.AT_FACILITY]: [],
+        [UNIT_STATE_ENUMERATION.IN_TRANSIT_EXCEPTION]: [
+          UNIT_STATE_ENUMERATION.IN_TRANSIT,
+          UNIT_STATE_ENUMERATION.AT_FACILITY,
+        ],
+        [UNIT_STATE_ENUMERATION.AT_FACILITY_EXCEPTION]: [
+          UNIT_STATE_ENUMERATION.AT_FACILITY,
+          UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY,
+        ],
+        [UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY_EXCEPTION]: [
+          UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY,
+          UNIT_STATE_ENUMERATION.DELIVERED,
+        ],
       };
 
       for (const [fromState, allowedToStates] of Object.entries(
@@ -332,9 +379,11 @@ describe('unit entity', () => {
     it('should handle multiple transitions in sequence', () => {
       const unit = Unit.create('T-ABC-12345');
 
+      // CREATED → PICKED_UP
       unit.addCheckpoint(
         Checkpoint.create(UNIT_STATE_ENUMERATION.PICKED_UP, 'LOC1', new Date()),
       );
+      // PICKED_UP → IN_TRANSIT
       unit.addCheckpoint(
         Checkpoint.create(
           UNIT_STATE_ENUMERATION.IN_TRANSIT,
@@ -342,18 +391,28 @@ describe('unit entity', () => {
           new Date(),
         ),
       );
+      // IN_TRANSIT → AT_FACILITY
       unit.addCheckpoint(
         Checkpoint.create(
-          UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY,
+          UNIT_STATE_ENUMERATION.AT_FACILITY,
           'LOC3',
           new Date(),
         ),
       );
+      // AT_FACILITY → OUT_FOR_DELIVERY
       unit.addCheckpoint(
-        Checkpoint.create(UNIT_STATE_ENUMERATION.DELIVERED, 'LOC4', new Date()),
+        Checkpoint.create(
+          UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY,
+          'LOC4',
+          new Date(),
+        ),
+      );
+      // OUT_FOR_DELIVERY → DELIVERED
+      unit.addCheckpoint(
+        Checkpoint.create(UNIT_STATE_ENUMERATION.DELIVERED, 'LOC5', new Date()),
       );
 
-      expect(unit.checkpoints).toHaveLength(5);
+      expect(unit.checkpoints).toHaveLength(6);
       expect(unit.currentState).toBe(UNIT_STATE_ENUMERATION.DELIVERED);
     });
 
@@ -397,31 +456,53 @@ function getPathToState(
       UNIT_STATE_ENUMERATION.PICKED_UP,
       UNIT_STATE_ENUMERATION.IN_TRANSIT,
     ],
+    [UNIT_STATE_ENUMERATION.AT_FACILITY]: [
+      UNIT_STATE_ENUMERATION.CREATED,
+      UNIT_STATE_ENUMERATION.PICKED_UP,
+      UNIT_STATE_ENUMERATION.IN_TRANSIT,
+      UNIT_STATE_ENUMERATION.AT_FACILITY,
+    ],
     [UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY]: [
       UNIT_STATE_ENUMERATION.CREATED,
       UNIT_STATE_ENUMERATION.PICKED_UP,
       UNIT_STATE_ENUMERATION.IN_TRANSIT,
+      UNIT_STATE_ENUMERATION.AT_FACILITY,
       UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY,
     ],
     [UNIT_STATE_ENUMERATION.DELIVERED]: [
       UNIT_STATE_ENUMERATION.CREATED,
       UNIT_STATE_ENUMERATION.PICKED_UP,
       UNIT_STATE_ENUMERATION.IN_TRANSIT,
+      UNIT_STATE_ENUMERATION.AT_FACILITY,
       UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY,
       UNIT_STATE_ENUMERATION.DELIVERED,
+    ],
+    // Exception states paths
+    [UNIT_STATE_ENUMERATION.PICKED_UP_EXCEPTION]: [
+      UNIT_STATE_ENUMERATION.CREATED,
+      UNIT_STATE_ENUMERATION.PICKED_UP,
+      UNIT_STATE_ENUMERATION.PICKED_UP_EXCEPTION,
+    ],
+    [UNIT_STATE_ENUMERATION.IN_TRANSIT_EXCEPTION]: [
+      UNIT_STATE_ENUMERATION.CREATED,
+      UNIT_STATE_ENUMERATION.PICKED_UP,
+      UNIT_STATE_ENUMERATION.IN_TRANSIT,
+      UNIT_STATE_ENUMERATION.IN_TRANSIT_EXCEPTION,
+    ],
+    [UNIT_STATE_ENUMERATION.AT_FACILITY_EXCEPTION]: [
+      UNIT_STATE_ENUMERATION.CREATED,
+      UNIT_STATE_ENUMERATION.PICKED_UP,
+      UNIT_STATE_ENUMERATION.IN_TRANSIT,
+      UNIT_STATE_ENUMERATION.AT_FACILITY,
+      UNIT_STATE_ENUMERATION.AT_FACILITY_EXCEPTION,
     ],
     [UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY_EXCEPTION]: [
       UNIT_STATE_ENUMERATION.CREATED,
       UNIT_STATE_ENUMERATION.PICKED_UP,
       UNIT_STATE_ENUMERATION.IN_TRANSIT,
-      UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY_EXCEPTION,
-    ],
-    [UNIT_STATE_ENUMERATION.AT_FACILITY]: [
-      UNIT_STATE_ENUMERATION.CREATED,
-      UNIT_STATE_ENUMERATION.PICKED_UP,
-      UNIT_STATE_ENUMERATION.IN_TRANSIT,
-      UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY_EXCEPTION,
       UNIT_STATE_ENUMERATION.AT_FACILITY,
+      UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY,
+      UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY_EXCEPTION,
     ],
   };
 

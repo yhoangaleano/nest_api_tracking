@@ -70,9 +70,16 @@ describe('GetTrackingHistoryUseCase', () => {
       );
       unit.addCheckpoint(
         Checkpoint.create(
+          UNIT_STATE_ENUMERATION.AT_FACILITY,
+          'DISTRIBUTION_CENTER',
+          new Date('2025-01-12T12:00:00Z'),
+        ),
+      );
+      unit.addCheckpoint(
+        Checkpoint.create(
           UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY,
           'VAN_B456',
-          new Date('2025-01-12T12:00:00Z'),
+          new Date('2025-01-12T13:00:00Z'),
         ),
       );
 
@@ -81,7 +88,7 @@ describe('GetTrackingHistoryUseCase', () => {
       const result = await useCase.execute(trackingId);
 
       expect(result).toBeInstanceOf(Unit);
-      expect(result.checkpoints).toHaveLength(4);
+      expect(result.checkpoints).toHaveLength(5);
       expect(result.currentState).toBe(UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY);
       expect(result.checkpoints[0]!.status).toBe(
         UNIT_STATE_ENUMERATION.CREATED,
@@ -95,6 +102,9 @@ describe('GetTrackingHistoryUseCase', () => {
         UNIT_STATE_ENUMERATION.IN_TRANSIT,
       );
       expect(result.checkpoints[3]!.status).toBe(
+        UNIT_STATE_ENUMERATION.AT_FACILITY,
+      );
+      expect(result.checkpoints[4]!.status).toBe(
         UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY,
       );
     });
@@ -121,6 +131,7 @@ describe('GetTrackingHistoryUseCase', () => {
       const trackingId = TrackingId.create(trackingIdStr);
       const unit = Unit.create(trackingIdStr);
 
+      // CREATED → PICKED_UP
       unit.addCheckpoint(
         Checkpoint.create(
           UNIT_STATE_ENUMERATION.PICKED_UP,
@@ -128,6 +139,7 @@ describe('GetTrackingHistoryUseCase', () => {
           new Date(),
         ),
       );
+      // PICKED_UP → IN_TRANSIT
       unit.addCheckpoint(
         Checkpoint.create(
           UNIT_STATE_ENUMERATION.IN_TRANSIT,
@@ -135,6 +147,23 @@ describe('GetTrackingHistoryUseCase', () => {
           new Date(),
         ),
       );
+      // IN_TRANSIT → AT_FACILITY
+      unit.addCheckpoint(
+        Checkpoint.create(
+          UNIT_STATE_ENUMERATION.AT_FACILITY,
+          'DISTRIBUTION_CENTER',
+          new Date(),
+        ),
+      );
+      // AT_FACILITY → OUT_FOR_DELIVERY
+      unit.addCheckpoint(
+        Checkpoint.create(
+          UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY,
+          'VAN',
+          new Date(),
+        ),
+      );
+      // OUT_FOR_DELIVERY → OUT_FOR_DELIVERY_EXCEPTION
       unit.addCheckpoint(
         Checkpoint.create(
           UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY_EXCEPTION,
@@ -144,20 +173,14 @@ describe('GetTrackingHistoryUseCase', () => {
           'First attempt failed',
         ),
       );
-      unit.addCheckpoint(
-        Checkpoint.create(
-          UNIT_STATE_ENUMERATION.IN_TRANSIT,
-          'TRUCK',
-          new Date(),
-          1,
-          'Second attempt',
-        ),
-      );
+      // OUT_FOR_DELIVERY_EXCEPTION → OUT_FOR_DELIVERY (retry)
       unit.addCheckpoint(
         Checkpoint.create(
           UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY,
           'VAN',
           new Date(),
+          2,
+          'Second attempt',
         ),
       );
 
@@ -167,7 +190,7 @@ describe('GetTrackingHistoryUseCase', () => {
 
       expect(result).toBeInstanceOf(Unit);
       expect(result.currentState).toBe(UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY);
-      expect(result.checkpoints).toHaveLength(6);
+      expect(result.checkpoints).toHaveLength(7);
     });
 
     it('should throw UnitNotFoundError when tracking ID does not exist', async () => {
@@ -202,6 +225,7 @@ describe('GetTrackingHistoryUseCase', () => {
       const trackingId = TrackingId.create(trackingIdStr);
       const unit = Unit.create(trackingIdStr);
 
+      // CREATED → PICKED_UP
       unit.addCheckpoint(
         Checkpoint.create(
           UNIT_STATE_ENUMERATION.PICKED_UP,
@@ -209,15 +233,35 @@ describe('GetTrackingHistoryUseCase', () => {
           new Date(),
         ),
       );
+      // PICKED_UP → IN_TRANSIT
+      unit.addCheckpoint(
+        Checkpoint.create(
+          UNIT_STATE_ENUMERATION.IN_TRANSIT,
+          'TRUCK',
+          new Date(),
+        ),
+      );
+      // IN_TRANSIT → AT_FACILITY
+      unit.addCheckpoint(
+        Checkpoint.create(
+          UNIT_STATE_ENUMERATION.AT_FACILITY,
+          'DISTRIBUTION_CENTER',
+          new Date(),
+        ),
+      );
 
-      for (let i = 0; i < 5; i++) {
+      // Multiple delivery attempts with exceptions
+      for (let i = 0; i < 3; i++) {
+        // AT_FACILITY/OUT_FOR_DELIVERY_EXCEPTION → OUT_FOR_DELIVERY
         unit.addCheckpoint(
           Checkpoint.create(
-            UNIT_STATE_ENUMERATION.IN_TRANSIT,
-            `TRUCK_${i}`,
+            UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY,
+            `VAN_${i}`,
             new Date(),
+            i + 1,
           ),
         );
+        // OUT_FOR_DELIVERY → OUT_FOR_DELIVERY_EXCEPTION
         unit.addCheckpoint(
           Checkpoint.create(
             UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY_EXCEPTION,
@@ -229,20 +273,17 @@ describe('GetTrackingHistoryUseCase', () => {
         );
       }
 
-      unit.addCheckpoint(
-        Checkpoint.create(
-          UNIT_STATE_ENUMERATION.IN_TRANSIT,
-          'TRUCK_FINAL',
-          new Date(),
-        ),
-      );
+      // Final successful delivery
+      // OUT_FOR_DELIVERY_EXCEPTION → OUT_FOR_DELIVERY
       unit.addCheckpoint(
         Checkpoint.create(
           UNIT_STATE_ENUMERATION.OUT_FOR_DELIVERY,
           'VAN_FINAL',
           new Date(),
+          4,
         ),
       );
+      // OUT_FOR_DELIVERY → DELIVERED
       unit.addCheckpoint(
         Checkpoint.create(
           UNIT_STATE_ENUMERATION.DELIVERED,
@@ -256,7 +297,7 @@ describe('GetTrackingHistoryUseCase', () => {
       const result = await useCase.execute(trackingId);
 
       expect(result).toBeInstanceOf(Unit);
-      expect(result.checkpoints.length).toBe(15);
+      expect(result.checkpoints.length).toBe(12);
       expect(result.currentState).toBe(UNIT_STATE_ENUMERATION.DELIVERED);
     });
   });
