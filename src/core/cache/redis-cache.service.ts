@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import Redis from 'ioredis';
+import Redis, { RedisOptions } from 'ioredis';
 
 import { ICacheService } from './cache.interface';
 
@@ -14,13 +14,19 @@ export class RedisCacheService implements ICacheService {
   private readonly redis: Redis;
 
   constructor(private readonly configService: ConfigService) {
-    this.redis = new Redis({
-      host: this.configService.get('redis.host'),
-      port: this.configService.get('redis.port'),
-      password: this.configService.get('redis.password'),
-      retryStrategy: () => null,
+    const url = this.configService.get<string>('redis.url')!;
+    const isProduction =
+      this.configService.get<string>('nodeEnv') === 'production';
+    const options: RedisOptions = {
+      retryStrategy: (times) => Math.min(times * 50, 2000),
       lazyConnect: true,
-    });
+    };
+    if (isProduction) {
+      options.tls = {
+        rejectUnauthorized: false,
+      };
+    }
+    this.redis = new Redis(url, options);
   }
 
   async clearAll(): Promise<{
