@@ -1,32 +1,33 @@
-version: '3.8'
-
 services:
-  # PostgreSQL (nuevo - migración)
+  # PostgreSQL Database
   postgres:
     image: postgres:16-alpine
     container_name: tracking_postgres
-    restart: always
+    restart: unless-stopped
     ports:
-      - '5432:5432'
+      - '${POSTGRES_PORT:-5432}:5432'
     environment:
-      POSTGRES_DB: tracking_db
-      POSTGRES_USER: tracking_user
-      POSTGRES_PASSWORD: tracking_pass
+      POSTGRES_DB: ${POSTGRES_DATABASE:-tracking_db}
+      POSTGRES_USER: ${POSTGRES_USER:-tracking_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tracking_pass}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U tracking_user -d tracking_db']
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-tracking_user} -d ${POSTGRES_DATABASE:-tracking_db}']
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - tracking_network
 
-  # Redis (nuevo - cache)
+  # Redis Cache
   redis:
     image: redis:7-alpine
     container_name: tracking_redis
-    restart: always
+    restart: unless-stopped
     ports:
-      - '6379:6379'
+      - '${REDIS_PORT:-6379}:6379'
+    command: redis-server --appendonly yes
     volumes:
       - redis_data:/data
     healthcheck:
@@ -34,37 +35,50 @@ services:
       interval: 10s
       timeout: 3s
       retries: 5
+    networks:
+      - tracking_network
 
-  # MongoDB (temporal - se eliminará después de migración)
-  mongo:
-    image: mongo:7
-    container_name: tracking_mongo
-    restart: always
+  # NestJS API
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tracking_api
+    restart: unless-stopped
     ports:
-      - '27017:27017'
+      - '${PORT:-3000}:3000'
     environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: password
-      MONGO_INITDB_DATABASE: tracking_db
-    volumes:
-      - mongo_data:/data/db
-
-  # RabbitMQ (temporal - se eliminará en Fase 3)
-  rabbitmq:
-    image: rabbitmq:3-management
-    container_name: tracking_rabbitmq
-    restart: always
-    ports:
-      - '5672:5672'   # Puerto AMQP
-      - '15672:15672' # Puerto Management UI
-    environment:
-      RABBITMQ_DEFAULT_USER: user
-      RABBITMQ_DEFAULT_PASS: password
-    volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3000
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-tracking_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tracking_pass}
+      POSTGRES_DATABASE: ${POSTGRES_DATABASE:-tracking_db}
+      POSTGRES_SYNC: ${POSTGRES_SYNC:-false}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_TTL: ${REDIS_TTL:-3600}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-minimum-32-characters-long-here}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-1h}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-your-super-secret-refresh-jwt-key-minimum-32-characters-long}
+      JWT_REFRESH_EXPIRATION: ${JWT_REFRESH_EXPIRATION:-7d}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3001}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - tracking_network
 
 volumes:
   postgres_data:
+    driver: local
   redis_data:
-  mongo_data:
-  rabbitmq_data:
+    driver: local
+
+networks:
+  tracking_network:
+    driver: bridge
