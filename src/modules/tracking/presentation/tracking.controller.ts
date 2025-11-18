@@ -15,7 +15,6 @@ import {
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 import { LoggerService } from '../../../core/logger/logger.service';
-import { Public } from '../../auth/presentation/decorators/public.decorator';
 import { CreateUnitDto } from './dtos/create-unit.dto';
 import { ListUnitsQueryDto } from './dtos/list-units-query.dto';
 import { RegisterCheckpointDto } from './dtos/register-checkpoint.dto';
@@ -62,7 +61,6 @@ export class TrackingController {
     this.logger.setContext('TrackingController');
   }
 
-  @Public()
   @Post('checkpoints')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Register a new checkpoint (synchronous)' })
@@ -118,7 +116,6 @@ export class TrackingController {
     }
   }
 
-  @Public()
   @Get('tracking/:trackingId')
   @ApiOperation({ summary: 'Get complete tracking history' })
   @ApiResponse({
@@ -156,7 +153,6 @@ export class TrackingController {
     }
   }
 
-  @Public()
   @Get('shipments')
   @ApiOperation({ summary: 'List units by state' })
   @ApiResponse({
@@ -181,7 +177,6 @@ export class TrackingController {
     return UnitSummaryResponseMapper.toDtoList(units);
   }
 
-  @Public()
   @Post('units')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({

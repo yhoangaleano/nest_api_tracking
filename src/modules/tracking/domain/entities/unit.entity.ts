@@ -8,19 +8,25 @@ import {
 import { isValidTransition } from '../configs/state-transitions';
 
 export class Unit {
+  private _currentState: UNIT_STATE_ENUMERATION;
+  private readonly _checkpoints: Checkpoint[];
+
   constructor(
-    public readonly id: string | null,
-    public readonly trackingId: string,
-    public currentState: UNIT_STATE_ENUMERATION,
-    public checkpoints: Checkpoint[],
-  ) {}
+    private readonly _id: string | null,
+    private readonly _trackingId: string,
+    currentState: UNIT_STATE_ENUMERATION,
+    checkpoints: Checkpoint[],
+  ) {
+    this._currentState = currentState;
+    this._checkpoints = [...checkpoints];
+  }
 
   static create(trackingId: string): Unit {
     const initialCheckpoint = Checkpoint.create(
       UNIT_STATE_ENUMERATION.CREATED,
       INITIAL_CHECKPOINT_LOCATION_CONSTANT,
       new Date(),
-      1, // attemptNumber - always 1 for initial checkpoint
+      1,
       INITIAL_CHECKPOINT_MESSAGE_CONSTANT,
     );
 
@@ -29,15 +35,52 @@ export class Unit {
     ]);
   }
 
+  get id(): string | null {
+    return this._id;
+  }
+
+  get trackingId(): string {
+    return this._trackingId;
+  }
+
+  get currentState(): UNIT_STATE_ENUMERATION {
+    return this._currentState;
+  }
+
+  get checkpoints(): Checkpoint[] {
+    return [...this._checkpoints];
+  }
+
   addCheckpoint(checkpoint: Checkpoint): void {
-    if (!isValidTransition(this.currentState, checkpoint.status)) {
+    if (!isValidTransition(this._currentState, checkpoint.status)) {
       throw new InvalidStateTransitionError(
-        this.currentState,
+        this._currentState,
         checkpoint.status,
       );
     }
 
-    this.checkpoints.push(checkpoint);
-    this.currentState = checkpoint.status;
+    this._checkpoints.push(checkpoint);
+    this._currentState = checkpoint.status;
+  }
+
+  getNextAttemptNumber(status: UNIT_STATE_ENUMERATION): number {
+    const checkpointsWithSameStatus = this._checkpoints.filter(
+      (cp) => cp.status === status,
+    );
+
+    if (checkpointsWithSameStatus.length === 0) {
+      return 1;
+    }
+
+    const maxAttempt = Math.max(
+      ...checkpointsWithSameStatus.map((cp) => cp.attemptNumber),
+    );
+
+    return maxAttempt + 1;
+  }
+
+  equals(other: Unit): boolean {
+    if (!other) return false;
+    return this._trackingId === other._trackingId;
   }
 }

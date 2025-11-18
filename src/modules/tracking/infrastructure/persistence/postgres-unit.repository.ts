@@ -129,8 +129,8 @@ export class PostgresUnitRepository implements IUnitRepository {
       (cp) =>
         new Checkpoint(
           cp.status,
-          cp.timestamp,
           cp.location,
+          cp.timestamp,
           cp.attemptNumber,
           cp.notes,
         ),
