@@ -1,7 +1,5 @@
-// Application layer
 import { CreateUnitUseCase } from './create-unit.use-case';
 
-// Domain layer
 import {
   Unit,
   TrackingId,
@@ -21,7 +19,6 @@ describe('CreateUnitUseCase', () => {
       findByState: jest.fn(),
     } as jest.Mocked<IUnitRepository>;
 
-    // Plain class instantiation - no NestJS DI needed
     useCase = new CreateUnitUseCase(mockRepository);
   });
 

@@ -1,10 +1,5 @@
-// Domain layer
 import { TrackingId } from '../../domain';
 
-/**
- * Mapper for converting string to TrackingId Value Object
- * Encapsulates tracking ID validation at domain level
- */
 export class TrackingIdMapper {
   /**
    * Converts a string to TrackingId Value Object

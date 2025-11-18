@@ -1,12 +1,3 @@
-/**
- * Port (interface) for Unit caching operations
- * This is part of the Domain layer and defines the contract for caching
- *
- * Following Clean Architecture:
- * - Domain defines the interface (port)
- * - Infrastructure implements the adapter (Redis, Memcached, etc.)
- * - Application layer (use cases) depends on the port, not the implementation
- */
 export interface IUnitCachePort {
   /**
    * Gets unit existence from cache

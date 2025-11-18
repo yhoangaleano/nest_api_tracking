@@ -1,4 +1,3 @@
-// Framework imports
 import {
   BadRequestException,
   Body,
@@ -15,13 +14,8 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
-// Core layer
 import { LoggerService } from '../../../core/logger/logger.service';
-
-// Auth decorators
 import { Public } from '../../auth/presentation/decorators/public.decorator';
-
-// Presentation layer
 import { CreateUnitDto } from './dtos/create-unit.dto';
 import { ListUnitsQueryDto } from './dtos/list-units-query.dto';
 import { RegisterCheckpointDto } from './dtos/register-checkpoint.dto';
@@ -35,11 +29,7 @@ import {
   UnitResponseMapper,
   UnitSummaryResponseMapper,
 } from './mappers';
-
-// Domain layer (value objects)
 import { TrackingId } from '../domain/value-objects';
-
-// Domain layer
 import {
   UnitNotFoundError,
   InvalidValueObjectError,
@@ -92,15 +82,12 @@ export class TrackingController {
     });
 
     try {
-      // Convert DTO to Value Object using mapper
       const checkpointData = CheckpointDataMapper.toValueObject(dto);
-
-      // Execute use case synchronously
       await this.registerCheckpointUseCase.execute(checkpointData);
 
       this.logger.logWithMetadata(
         'info',
-        '✅ Checkpoint registered successfully',
+        'Checkpoint registered successfully',
         {
           trackingId: dto.trackingId,
           status: dto.status,
@@ -146,17 +133,11 @@ export class TrackingController {
     this.logger.debug(`Retrieving tracking history for: ${trackingId}`);
 
     try {
-      // Convert string to Value Object
       const trackingIdVO = TrackingIdMapper.toValueObject(trackingId);
-
-      // Use Case returns Unit entity
       const unit = await this.getTrackingHistoryUseCase.execute(trackingIdVO);
 
-      this.logger.log(
-        `Tracking history retrieved successfully for: ${trackingId}`,
-      );
+      this.logger.log(`Tracking history retrieved for: ${trackingId}`);
 
-      // Convert Unit entity to DTO using mapper
       return UnitResponseMapper.toDto(unit);
     } catch (error) {
       if (error instanceof UnitNotFoundError) {
@@ -189,10 +170,7 @@ export class TrackingController {
   ): Promise<UnitSummaryResponseDto[]> {
     this.logger.debug(`Listing shipments by state: ${query.status}`);
 
-    // Convert DTO to Value Object
     const stateQuery = UnitStateQueryMapper.toValueObject(query);
-
-    // Use Case returns Unit[] entities
     const units = await this.listUnitsByStateUseCase.execute(stateQuery);
 
     this.logger.logWithMetadata('info', 'Shipments listed', {
@@ -200,30 +178,16 @@ export class TrackingController {
       count: units.length,
     });
 
-    // Convert Unit[] to DTOs using mapper
     return UnitSummaryResponseMapper.toDtoList(units);
   }
 
-  /**
-   * 🧪 TESTING ONLY: Create a new unit
-   *
-   * This endpoint is for development and testing purposes only.
-   * In production, units are created by external systems (WMS, TMS, etc.)
-   *
-   * @param dto - CreateUnitDto with trackingId
-   * @returns CreateUnitResponseDto with unit details
-   * @throws ConflictException if unit already exists
-   * @throws ForbiddenException if called in production environment
-   */
   @Public()
   @Post('units')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
-    summary: '🧪 Create a new unit (TESTING ONLY)',
+    summary: 'Create a new unit',
     description:
-      'Creates a new unit with an initial checkpoint (state = CREATED). ' +
-      'This endpoint is for development and testing purposes only. ' +
-      'In production, units should be created by external systems (WMS, TMS, etc.).',
+      'Creates a new unit with an initial checkpoint (state = CREATED)',
   })
   @ApiResponse({
     status: 201,
@@ -232,23 +196,16 @@ export class TrackingController {
   })
   @ApiResponse({ status: 400, description: 'Invalid data' })
   @ApiResponse({ status: 409, description: 'Unit already exists' })
-  @ApiResponse({
-    status: 403,
-    description: 'Endpoint only available in development',
-  })
   async createUnit(@Body() dto: CreateUnitDto): Promise<CreateUnitResponseDto> {
-    this.logger.logWithMetadata('info', '🧪 Creating unit for testing', {
+    this.logger.logWithMetadata('info', 'Creating unit', {
       trackingId: dto.trackingId,
     });
 
     try {
-      // Convert DTO string to Value Object (validates format)
       const trackingIdVO = TrackingId.create(dto.trackingId);
-
-      // Create unit with initial checkpoint (state = CREATED)
       const unit = await this.createUnitUseCase.execute(trackingIdVO);
 
-      this.logger.logWithMetadata('info', '✅ Unit created successfully', {
+      this.logger.logWithMetadata('info', 'Unit created successfully', {
         trackingId: unit.trackingId,
         currentState: unit.currentState,
       });

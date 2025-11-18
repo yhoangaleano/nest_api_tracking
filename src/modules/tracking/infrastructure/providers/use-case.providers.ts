@@ -1,7 +1,5 @@
-// Framework imports
 import { Provider } from '@nestjs/common';
 
-// Application layer
 import {
   CreateUnitUseCase,
   GetTrackingHistoryUseCase,
@@ -9,7 +7,6 @@ import {
   RegisterCheckpointUseCase,
 } from '../../application/use-cases';
 
-// Domain layer
 import {
   IUnitRepository,
   IUnitCachePort,

@@ -1,11 +1,8 @@
-// Framework imports
 import { Inject, Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 
-// Third-party libraries
 import { DataSource } from 'typeorm';
 
-// Core layer
 import {
   CACHE_SERVICE_TOKEN_CONSTANT,
   ICacheService,

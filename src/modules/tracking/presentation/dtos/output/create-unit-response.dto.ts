@@ -1,13 +1,7 @@
-// Framework imports
 import { ApiProperty } from '@nestjs/swagger';
 
-// Domain layer
 import { UNIT_STATE_ENUMERATION } from '../../../domain/configs/unit-state.enum';
 
-/**
- * Response DTO for unit creation
- * Used by POST /units endpoint (testing/development only)
- */
 export class CreateUnitResponseDto {
   @ApiProperty({
     description: 'Tracking ID of the created unit',

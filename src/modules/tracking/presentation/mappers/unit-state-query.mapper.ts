@@ -1,13 +1,7 @@
-// Domain layer
 import { UnitStateQuery } from '../../domain';
 
-// Presentation layer
 import { ListUnitsQueryDto } from '../dtos/list-units-query.dto';
 
-/**
- * Mapper for converting ListUnitsQueryDto to UnitStateQuery Value Object
- * Ensures query parameters are validated at domain level
- */
 export class UnitStateQueryMapper {
   /**
    * Converts a ListUnitsQueryDto to UnitStateQuery Value Object

@@ -1,7 +1,5 @@
-// Application layer
 import { ListUnitsByStateUseCase } from './list-units-by-state.use-case';
 
-// Domain layer
 import { Unit, UnitStateQuery, IUnitRepository } from '../../domain';
 import { UNIT_STATE_ENUMERATION } from '../../domain/configs';
 
@@ -16,7 +14,6 @@ describe('ListUnitsByStateUseCase', () => {
       findByState: jest.fn(),
     } as jest.Mocked<IUnitRepository>;
 
-    // Plain class instantiation - no NestJS DI needed
     useCase = new ListUnitsByStateUseCase(mockRepository);
   });
 

@@ -1,10 +1,6 @@
 import { Unit } from '../../entities';
 import { UnitStateQuery } from '../../value-objects';
 
-/**
- * Port for listing units by state
- * Returns domain entities (Unit[])
- */
 export interface IListUnitsByStateUseCase {
   /**
    * Retrieves all units that match the specified state

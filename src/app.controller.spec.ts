@@ -36,9 +36,7 @@ describe('AppController', () => {
 
   describe('root', () => {
     it('should return tracking API message', () => {
-      expect(appController.getHello()).toBe(
-        'Tracking API - PostgreSQL + Redis Migration Completed ✅',
-      );
+      expect(appController.getHello()).toBe('Tracking API - PostgreSQL + Redis');
     });
   });
 });

@@ -2,23 +2,8 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createClient, RedisClientType } from 'redis';
 
-// Domain layer
 import { IUnitCachePort } from '../../domain/ports/cache';
 
-/**
- * Redis adapter implementing IUnitCachePort
- * This is the infrastructure implementation of the cache port
- *
- * Following Clean Architecture:
- * - Implements the domain port (IUnitCachePort)
- * - Contains infrastructure-specific logic (Redis client)
- * - Can be replaced with another implementation (Memcached, etc.)
- *
- * Cache values:
- * - '1' = unit exists
- * - '0' = unit does not exist
- * - null = not cached (cache miss)
- */
 @Injectable()
 export class RedisUnitCacheAdapter implements IUnitCachePort, OnModuleInit {
   private readonly logger = new Logger(RedisUnitCacheAdapter.name);
@@ -64,7 +49,7 @@ export class RedisUnitCacheAdapter implements IUnitCachePort, OnModuleInit {
         `Error getting cache for trackingId ${trackingId}`,
         error,
       );
-      return null; // On error, treat as cache miss
+      return null;
     }
   }
 
@@ -78,7 +63,6 @@ export class RedisUnitCacheAdapter implements IUnitCachePort, OnModuleInit {
         `Error setting cache for trackingId ${trackingId}`,
         error,
       );
-      // Don't throw - cache failures should not break the application
     }
   }
 
@@ -91,7 +75,6 @@ export class RedisUnitCacheAdapter implements IUnitCachePort, OnModuleInit {
         `Error invalidating cache for trackingId ${trackingId}`,
         error,
       );
-      // Don't throw - cache failures should not break the application
     }
   }
 
@@ -106,23 +89,13 @@ export class RedisUnitCacheAdapter implements IUnitCachePort, OnModuleInit {
       }
     } catch (error) {
       this.logger.error('Error clearing cache', error);
-      // Don't throw - cache failures should not break the application
     }
   }
 
-  /**
-   * Builds the cache key for a tracking ID
-   * @param trackingId - The tracking ID
-   * @returns The full cache key
-   */
   private buildKey(trackingId: string): string {
     return `${this.keyPrefix}${trackingId}`;
   }
 
-  /**
-   * Closes the Redis connection
-   * Called on application shutdown
-   */
   async onModuleDestroy(): Promise<void> {
     if (this.client) {
       await this.client.quit();

@@ -11,10 +11,6 @@ import {
 import { UNIT_STATE_ENUMERATION } from '../../../domain/configs/unit-state.enum';
 import { CheckpointEntity } from './checkpoint.entity';
 
-/**
- * TypeORM entity for Unit table in PostgreSQL
- * Represents a tracking unit in the database
- */
 @Entity('units')
 export class UnitEntity {
   @PrimaryGeneratedColumn('increment', { type: 'bigint' })
@@ -39,7 +35,6 @@ export class UnitEntity {
   @UpdateDateColumn({ type: 'timestamptz', name: 'updated_at' })
   updatedAt!: Date;
 
-  // Relations
   @OneToMany(() => CheckpointEntity, (checkpoint) => checkpoint.unit, {
     cascade: true,
   })

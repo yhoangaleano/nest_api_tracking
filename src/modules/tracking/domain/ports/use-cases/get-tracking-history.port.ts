@@ -1,10 +1,6 @@
 import { Unit } from '../../entities';
 import { TrackingId } from '../../value-objects';
 
-/**
- * Port for retrieving tracking history
- * Returns domain entity (Unit)
- */
 export interface IGetTrackingHistoryUseCase {
   /**
    * Retrieves the complete tracking history for a unit

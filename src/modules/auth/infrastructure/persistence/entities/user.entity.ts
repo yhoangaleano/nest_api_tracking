@@ -1,4 +1,3 @@
-// Framework imports
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -7,7 +6,6 @@ import {
   Index,
 } from 'typeorm';
 
-// Domain layer
 import { USER_ROLE_ENUMERATION } from '../../../domain/user-role.enum';
 
 /**

@@ -1,11 +1,9 @@
-// Framework imports
 import {
   Inject,
   Injectable,
   ServiceUnavailableException,
 } from '@nestjs/common';
 
-// Core layer
 import { CACHE_SERVICE_TOKEN_CONSTANT, ICacheService } from './core/cache';
 import { HEALTH_SERVICE_TOKEN_CONSTANT, IHealthService } from './core/health';
 
@@ -19,7 +17,7 @@ export class AppService {
   ) {}
 
   getHello(): string {
-    return 'Tracking API - PostgreSQL + Redis Migration Completed ✅';
+    return 'Tracking API - PostgreSQL + Redis';
   }
 
   healthCheck() {

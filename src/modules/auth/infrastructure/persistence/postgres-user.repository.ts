@@ -1,15 +1,11 @@
-// Framework imports
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
-// Third-party libraries
 import { Repository } from 'typeorm';
 
-// Domain layer
 import { User } from '../../domain/user.entity';
 import { IUserRepository } from '../../domain/user.repository';
 
-// Infrastructure layer
 import { UserEntity } from './entities';
 
 /**

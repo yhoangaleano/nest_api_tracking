@@ -1,10 +1,8 @@
-// Framework imports
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-// Own code imports
 import configuration from './config/configuration';
 import { envValidationSchema } from './config/env.validation';
 import { CoreModule } from './core/core.module';
@@ -17,7 +15,6 @@ import { AppService } from './app.service';
 
 @Module({
   imports: [
-    // Configuration
     ConfigModule.forRoot({
       isGlobal: true,
       load: [configuration],
@@ -27,8 +24,6 @@ import { AppService } from './app.service';
         allowUnknown: true,
       },
     }),
-
-    // Database - PostgreSQL
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
@@ -43,20 +38,14 @@ import { AppService } from './app.service';
         logging: configService.get<boolean>('postgres.logging'),
       }),
     }),
-
-    // Core Modules
     CoreModule,
     LoggerModule,
-
-    // Feature Modules
     AuthModule,
     TrackingModule,
   ],
   controllers: [AppController, AdminController],
   providers: [
     AppService,
-    // Only enable JWT guard if DISABLE_AUTH is not 'true'
-    // This allows E2E tests to run without authentication
     ...(process.env.DISABLE_AUTH === 'true'
       ? []
       : [

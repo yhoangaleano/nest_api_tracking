@@ -1,15 +1,11 @@
-// Framework imports
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
-// Third-party libraries
 import { Repository } from 'typeorm';
 
-// Domain layer
 import { Checkpoint, Unit, IUnitRepository } from '../../domain';
 import { UNIT_STATE_ENUMERATION } from '../../domain/configs';
 
-// Infrastructure layer
 import { UnitEntity, CheckpointEntity } from './entities';
 
 /**
@@ -40,29 +36,22 @@ export class PostgresUnitRepository implements IUnitRepository {
   }
 
   async save(unit: Unit): Promise<Unit> {
-    // Check if unit already exists
     const existingEntity = await this.unitRepository.findOne({
       where: { trackingId: unit.trackingId },
       relations: ['checkpoints'],
     });
 
     if (existingEntity) {
-      // Update existing unit
       existingEntity.currentState = unit.currentState;
-
-      // Find new checkpoints to add (those not in DB yet)
       const existingCheckpointKeys = new Set(
         existingEntity.checkpoints.map(
           (cp) => `${cp.status}-${cp.attemptNumber}`,
         ),
       );
-
       const newCheckpoints = unit.checkpoints.filter((domainCp) => {
         const key = `${domainCp.status}-${domainCp.attemptNumber}`;
         return !existingCheckpointKeys.has(key);
       });
-
-      // Add new checkpoints to the unit's collection (cascade will handle save)
       for (const checkpoint of newCheckpoints) {
         const checkpointEntity = this.checkpointRepository.create({
           status: checkpoint.status,
@@ -73,8 +62,6 @@ export class PostgresUnitRepository implements IUnitRepository {
         });
         existingEntity.checkpoints.push(checkpointEntity);
       }
-
-      // Save unit with new checkpoints (cascade)
       const savedEntity = await this.unitRepository.save(existingEntity);
       const reloaded = await this.unitRepository.findOne({
         where: { id: savedEntity.id },
@@ -88,13 +75,10 @@ export class PostgresUnitRepository implements IUnitRepository {
 
       return this.toDomain(reloaded!);
     } else {
-      // Create new unit
       const newEntity = this.unitRepository.create({
         trackingId: unit.trackingId,
         currentState: unit.currentState,
       });
-
-      // Create checkpoints and add to unit's collection
       const checkpointEntities = unit.checkpoints.map((checkpoint) =>
         this.checkpointRepository.create({
           status: checkpoint.status,
@@ -107,7 +91,6 @@ export class PostgresUnitRepository implements IUnitRepository {
 
       newEntity.checkpoints = checkpointEntities;
 
-      // Save unit with checkpoints (cascade)
       const savedUnit = await this.unitRepository.save(newEntity);
 
       const reloaded = await this.unitRepository.findOne({

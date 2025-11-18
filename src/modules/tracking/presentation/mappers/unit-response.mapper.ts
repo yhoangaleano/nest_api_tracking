@@ -1,13 +1,7 @@
-// Domain layer
 import { Unit } from '../../domain';
 
-// Presentation layer
 import { CheckpointResponseDto, UnitResponseDto } from '../dtos/output';
 
-/**
- * Mapper for converting Unit entity to UnitResponseDto
- * Follows Single Responsibility Principle - DTOs only hold data, mappers handle conversion
- */
 export class UnitResponseMapper {
   /**
    * Converts a Unit domain entity to UnitResponseDto for API responses

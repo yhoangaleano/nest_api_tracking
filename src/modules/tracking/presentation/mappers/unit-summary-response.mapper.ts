@@ -1,13 +1,7 @@
-// Domain layer
 import { Unit } from '../../domain';
 
-// Presentation layer
 import { UnitSummaryResponseDto } from '../dtos/output';
 
-/**
- * Mapper for converting Unit entity to UnitSummaryResponseDto
- * Provides a lightweight summary without full checkpoint history
- */
 export class UnitSummaryResponseMapper {
   /**
    * Converts a Unit domain entity to UnitSummaryResponseDto for API responses

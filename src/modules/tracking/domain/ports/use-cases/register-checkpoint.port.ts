@@ -1,9 +1,5 @@
 import { CheckpointData } from '../../value-objects';
 
-/**
- * Port for registering a checkpoint
- * Uses Value Object for input validation
- */
 export interface IRegisterCheckpointUseCase {
   /**
    * Registers a new checkpoint for a unit

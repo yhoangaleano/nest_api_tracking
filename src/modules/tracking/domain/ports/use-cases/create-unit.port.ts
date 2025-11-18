@@ -1,10 +1,6 @@
 import { Unit } from '../../entities';
 import { TrackingId } from '../../value-objects';
 
-/**
- * Port for creating a new unit
- * TESTING/DEVELOPMENT ONLY - In production, units are created by external systems
- */
 export interface ICreateUnitUseCase {
   /**
    * Creates a new unit with initial state

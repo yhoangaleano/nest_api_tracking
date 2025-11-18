@@ -12,15 +12,6 @@ import {
 import { UNIT_STATE_ENUMERATION } from '../../../domain/configs/unit-state.enum';
 import { UnitEntity } from './unit.entity';
 
-/**
- * TypeORM entity for Checkpoint table in PostgreSQL
- * Represents a tracking checkpoint/event in the database
- *
- * Idempotency constraint: UNIQUE(unit_id, status, attempt_number)
- * - Prevents duplicate checkpoints for the same state attempt
- * - Allows multiple attempts of the same state (for delivery retries)
- * - Each retry increments attempt_number
- */
 @Entity('checkpoints')
 @Unique('uq_checkpoint_idempotency', ['unitId', 'status', 'attemptNumber'])
 export class CheckpointEntity {
@@ -55,7 +46,6 @@ export class CheckpointEntity {
   @CreateDateColumn({ type: 'timestamptz', name: 'created_at' })
   createdAt!: Date;
 
-  // Relations
   @ManyToOne(() => UnitEntity, (unit) => unit.checkpoints, {
     onDelete: 'CASCADE',
   })

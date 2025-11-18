@@ -1,13 +1,7 @@
-// Domain layer
 import { CheckpointData } from '../../domain';
 
-// Presentation layer
 import { RegisterCheckpointDto } from '../dtos/register-checkpoint.dto';
 
-/**
- * Mapper for converting RegisterCheckpointDto to CheckpointData Value Object
- * Handles conversion from presentation layer DTOs to domain Value Objects
- */
 export class CheckpointDataMapper {
   /**
    * Converts a RegisterCheckpointDto to CheckpointData Value Object

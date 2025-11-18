@@ -1,11 +1,8 @@
-// Framework imports
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-// Third-party libraries
 import Redis from 'ioredis';
 
-// Core layer
 import { ICacheService } from './cache.interface';
 
 /**
@@ -14,7 +11,7 @@ import { ICacheService } from './cache.interface';
  */
 @Injectable()
 export class RedisCacheService implements ICacheService {
-  private redis: Redis;
+  private readonly redis: Redis;
 
   constructor(private readonly configService: ConfigService) {
     this.redis = new Redis({

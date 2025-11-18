@@ -1,7 +1,5 @@
-// Application layer
 import { GetTrackingHistoryUseCase } from './get-tracking-history.use-case';
 
-// Domain layer
 import {
   Checkpoint,
   Unit,
@@ -22,7 +20,6 @@ describe('GetTrackingHistoryUseCase', () => {
       findByState: jest.fn(),
     } as jest.Mocked<IUnitRepository>;
 
-    // Plain class instantiation - no NestJS DI needed
     useCase = new GetTrackingHistoryUseCase(mockRepository);
   });
 
