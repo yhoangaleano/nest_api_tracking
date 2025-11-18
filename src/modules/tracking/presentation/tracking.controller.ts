@@ -27,6 +27,7 @@ import {
   UnitStateQueryMapper,
   UnitResponseMapper,
   UnitSummaryResponseMapper,
+  CreateUnitResponseMapper,
 } from './mappers';
 import { TrackingId } from '../domain/value-objects';
 import {
@@ -166,15 +167,27 @@ export class TrackingController {
   ): Promise<UnitSummaryResponseDto[]> {
     this.logger.debug(`Listing shipments by state: ${query.status}`);
 
-    const stateQuery = UnitStateQueryMapper.toValueObject(query);
-    const units = await this.listUnitsByStateUseCase.execute(stateQuery);
+    try {
+      const stateQuery = UnitStateQueryMapper.toValueObject(query);
+      const units = await this.listUnitsByStateUseCase.execute(stateQuery);
 
-    this.logger.logWithMetadata('info', 'Shipments listed', {
-      status: query.status,
-      count: units.length,
-    });
+      this.logger.logWithMetadata('info', 'Shipments listed', {
+        status: query.status,
+        count: units.length,
+      });
 
-    return UnitSummaryResponseMapper.toDtoList(units);
+      return UnitSummaryResponseMapper.toDtoList(units);
+    } catch (error) {
+      if (error instanceof InvalidValueObjectError) {
+        this.logger.warn(`Invalid state query: ${error.message}`);
+        throw new BadRequestException(error.message);
+      }
+      this.logger.error(
+        `Error listing shipments by state: ${query.status}`,
+        (error as Error).stack,
+      );
+      throw error;
+    }
   }
 
   @Post('units')
@@ -205,13 +218,7 @@ export class TrackingController {
         currentState: unit.currentState,
       });
 
-      return {
-        trackingId: unit.trackingId,
-        currentState: unit.currentState,
-        createdAt: new Date().toISOString(),
-        success: true,
-        message: 'Unit created successfully',
-      };
+      return CreateUnitResponseMapper.toDto(unit);
     } catch (error) {
       if (error instanceof UnitAlreadyExistsError) {
         this.logger.warn(`Unit already exists: ${dto.trackingId}`);
