@@ -36,6 +36,9 @@ import { AppService } from './app.service';
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
         synchronize: configService.get<boolean>('postgres.synchronize'),
         logging: configService.get<boolean>('postgres.logging'),
+        ssl: configService.get<boolean>('postgres.ssl')
+          ? false
+          : { rejectUnauthorized: false },
       }),
     }),
     CoreModule,

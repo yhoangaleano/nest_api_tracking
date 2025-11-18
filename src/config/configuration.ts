@@ -10,6 +10,7 @@ const configuration = () => ({
     database: process.env.POSTGRES_DATABASE || 'tracking_db',
     synchronize: process.env.POSTGRES_SYNC === 'true', // false en producción
     logging: process.env.NODE_ENV === 'development',
+    ssl: process.env.NODE_ENV === 'development',
   },
 
   // Redis (cache)
