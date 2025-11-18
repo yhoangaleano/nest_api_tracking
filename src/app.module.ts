@@ -29,7 +29,6 @@ import { AppService } from './app.service';
       useFactory: (configService: ConfigService) => ({
         type: 'postgres',
         url: configService.get<string>('postgres.url'),
-        entities: [__dirname + '/**/*.entity{.ts,.js}'],
         ssl:
           configService.get<string>('nodeEnv') === 'production'
             ? { rejectUnauthorized: false }
