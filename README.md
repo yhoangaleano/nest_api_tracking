@@ -1,5 +1,10 @@
 # API de tracking logístico
 
+**Resumen de la stack de despliegue:**
+*   **Aplicación (NestJS):** Render (onrender.com)
+*   **Base de datos (PostgreSQL):** Neon (neon.tech)
+*   **Caché (Redis):** Upstash (upstash.io)
+
 Sistema de seguimiento de paquetes construido con NestJS, implementando arquitectura limpia para procesar checkpoints de envíos.
 
 ## Stack tecnológico
