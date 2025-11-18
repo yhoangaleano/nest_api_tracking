@@ -41,7 +41,7 @@ export class RegisterCheckpointUseCase implements IRegisterCheckpointUseCase {
     );
 
     unit.addCheckpoint(checkpoint);
-    await this.unitRepository.save(unit);
+    await this.unitRepository.update(unit);
     await this.cachePort.invalidateUnit(data.trackingId);
   }
 }

@@ -1,17 +1,21 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, FindOptionsOrder } from 'typeorm';
 
-import { Repository } from 'typeorm';
-
-import { Checkpoint, Unit, IUnitRepository } from '../../domain';
+import {
+  Checkpoint,
+  Unit,
+  IUnitRepository,
+  UnitAlreadyExistsError,
+  UnitNotFoundError,
+} from '../../domain';
 import { UNIT_STATE_ENUMERATION } from '../../domain/configs';
-
 import { UnitEntity, CheckpointEntity } from './entities';
 
-/**
- * PostgreSQL implementation of IUnitRepository using TypeORM
- * Handles mapping between domain entities and TypeORM entities
- */
+const CHECKPOINT_ORDER: FindOptionsOrder<UnitEntity> = {
+  checkpoints: { timestamp: 'ASC' },
+};
+
 @Injectable()
 export class PostgresUnitRepository implements IUnitRepository {
   constructor(
@@ -25,105 +29,102 @@ export class PostgresUnitRepository implements IUnitRepository {
     const entity = await this.unitRepository.findOne({
       where: { trackingId },
       relations: ['checkpoints'],
-      order: {
-        checkpoints: {
-          timestamp: 'ASC',
-        },
-      },
+      order: CHECKPOINT_ORDER,
     });
 
     return entity ? this.toDomain(entity) : null;
   }
 
-  async save(unit: Unit): Promise<Unit> {
+  async create(unit: Unit): Promise<Unit> {
+    const existingEntity = await this.unitRepository.findOne({
+      where: { trackingId: unit.trackingId },
+    });
+
+    if (existingEntity) {
+      throw new UnitAlreadyExistsError(unit.trackingId);
+    }
+
+    const newEntity = this.unitRepository.create({
+      trackingId: unit.trackingId,
+      currentState: unit.currentState,
+    });
+
+    const checkpointEntities = unit.checkpoints.map((checkpoint) =>
+      this.toCheckpointEntity(checkpoint),
+    );
+
+    newEntity.checkpoints = checkpointEntities;
+    const savedEntity = await this.unitRepository.save(newEntity);
+
+    return this.reloadAndConvert(savedEntity.id);
+  }
+
+  async update(unit: Unit): Promise<Unit> {
     const existingEntity = await this.unitRepository.findOne({
       where: { trackingId: unit.trackingId },
       relations: ['checkpoints'],
     });
 
-    if (existingEntity) {
-      existingEntity.currentState = unit.currentState;
-      const existingCheckpointKeys = new Set(
-        existingEntity.checkpoints.map(
-          (cp) => `${cp.status}-${cp.attemptNumber}`,
-        ),
-      );
-      const newCheckpoints = unit.checkpoints.filter((domainCp) => {
-        const key = `${domainCp.status}-${domainCp.attemptNumber}`;
-        return !existingCheckpointKeys.has(key);
-      });
-      for (const checkpoint of newCheckpoints) {
-        const checkpointEntity = this.checkpointRepository.create({
-          status: checkpoint.status,
-          attemptNumber: checkpoint.attemptNumber,
-          location: checkpoint.location,
-          timestamp: checkpoint.timestamp,
-          notes: checkpoint.notes,
-        });
-        existingEntity.checkpoints.push(checkpointEntity);
-      }
-      const savedEntity = await this.unitRepository.save(existingEntity);
-      const reloaded = await this.unitRepository.findOne({
-        where: { id: savedEntity.id },
-        relations: ['checkpoints'],
-        order: {
-          checkpoints: {
-            timestamp: 'ASC',
-          },
-        },
-      });
-
-      return this.toDomain(reloaded!);
-    } else {
-      const newEntity = this.unitRepository.create({
-        trackingId: unit.trackingId,
-        currentState: unit.currentState,
-      });
-      const checkpointEntities = unit.checkpoints.map((checkpoint) =>
-        this.checkpointRepository.create({
-          status: checkpoint.status,
-          attemptNumber: checkpoint.attemptNumber,
-          location: checkpoint.location,
-          timestamp: checkpoint.timestamp,
-          notes: checkpoint.notes,
-        }),
-      );
-
-      newEntity.checkpoints = checkpointEntities;
-
-      const savedUnit = await this.unitRepository.save(newEntity);
-
-      const reloaded = await this.unitRepository.findOne({
-        where: { id: savedUnit.id },
-        relations: ['checkpoints'],
-        order: {
-          checkpoints: {
-            timestamp: 'ASC',
-          },
-        },
-      });
-
-      return this.toDomain(reloaded!);
+    if (!existingEntity) {
+      throw new UnitNotFoundError(unit.trackingId);
     }
+
+    existingEntity.currentState = unit.currentState;
+
+    const existingCheckpointKeys = new Set(
+      existingEntity.checkpoints.map(
+        (cp) => `${cp.status}-${cp.attemptNumber}`,
+      ),
+    );
+
+    const newCheckpoints = unit.checkpoints.filter((domainCp) => {
+      const key = `${domainCp.status}-${domainCp.attemptNumber}`;
+      return !existingCheckpointKeys.has(key);
+    });
+
+    for (const checkpoint of newCheckpoints) {
+      existingEntity.checkpoints.push(this.toCheckpointEntity(checkpoint));
+    }
+
+    const savedEntity = await this.unitRepository.save(existingEntity);
+
+    return this.reloadAndConvert(savedEntity.id);
   }
 
   async findByState(state: UNIT_STATE_ENUMERATION): Promise<Unit[]> {
     const entities = await this.unitRepository.find({
       where: { currentState: state },
       relations: ['checkpoints'],
-      order: {
-        checkpoints: {
-          timestamp: 'ASC',
-        },
-      },
+      order: CHECKPOINT_ORDER,
     });
 
     return entities.map((entity) => this.toDomain(entity));
   }
 
-  /**
-   * Maps TypeORM entity to domain entity
-   */
+  private async reloadAndConvert(id: string): Promise<Unit> {
+    const reloaded = await this.unitRepository.findOne({
+      where: { id },
+      relations: ['checkpoints'],
+      order: CHECKPOINT_ORDER,
+    });
+
+    if (!reloaded) {
+      throw new Error(`Failed to reload unit with id ${id}`);
+    }
+
+    return this.toDomain(reloaded);
+  }
+
+  private toCheckpointEntity(checkpoint: Checkpoint): CheckpointEntity {
+    return this.checkpointRepository.create({
+      status: checkpoint.status,
+      attemptNumber: checkpoint.attemptNumber,
+      location: checkpoint.location,
+      timestamp: checkpoint.timestamp,
+      notes: checkpoint.notes,
+    });
+  }
+
   private toDomain(entity: UnitEntity): Unit {
     const checkpoints = entity.checkpoints.map(
       (cp) =>

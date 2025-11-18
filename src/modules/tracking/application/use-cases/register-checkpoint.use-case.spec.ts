@@ -18,8 +18,9 @@ describe('register checkpoint use case', () => {
   beforeEach(() => {
     mockRepository = {
       findByTrackingId: jest.fn(),
-      save: jest.fn(),
       findByState: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
     } as jest.Mocked<IUnitRepository>;
 
     mockCachePort = {
@@ -58,7 +59,7 @@ describe('register checkpoint use case', () => {
       expect(mockRepository.findByTrackingId).toHaveBeenCalledWith(
         checkpointData.trackingId,
       );
-      expect(mockRepository.save).not.toHaveBeenCalled();
+      expect(mockRepository.update).not.toHaveBeenCalled();
       expect(mockCachePort.setUnitExists).toHaveBeenCalledWith(
         checkpointData.trackingId,
         false,
@@ -78,14 +79,14 @@ describe('register checkpoint use case', () => {
 
       mockCachePort.getUnitExists.mockResolvedValue(null);
       mockRepository.findByTrackingId.mockResolvedValue(existingUnit);
-      mockRepository.save.mockImplementation((unit) => Promise.resolve(unit));
+      mockRepository.update.mockImplementation((unit) => Promise.resolve(unit));
 
       await useCase.execute(checkpointData);
 
       expect(mockRepository.findByTrackingId).toHaveBeenCalledWith(trackingId);
-      expect(mockRepository.save).toHaveBeenCalledTimes(1);
+      expect(mockRepository.update).toHaveBeenCalledTimes(1);
 
-      const savedUnit = mockRepository.save.mock.calls[0]![0];
+      const savedUnit = mockRepository.update.mock.calls[0]![0];
       expect(savedUnit.currentState).toBe(UNIT_STATE_ENUMERATION.PICKED_UP);
       expect(savedUnit.checkpoints).toHaveLength(2);
     });
@@ -96,7 +97,7 @@ describe('register checkpoint use case', () => {
 
       mockCachePort.getUnitExists.mockResolvedValue(null);
       mockRepository.findByTrackingId.mockResolvedValue(currentUnit);
-      mockRepository.save.mockImplementation((unit) => {
+      mockRepository.update.mockImplementation((unit) => {
         currentUnit = unit;
         return Promise.resolve(unit);
       });
@@ -134,7 +135,7 @@ describe('register checkpoint use case', () => {
 
       mockCachePort.getUnitExists.mockResolvedValue(null);
       mockRepository.findByTrackingId.mockResolvedValue(existingUnit);
-      mockRepository.save.mockImplementation((unit) => Promise.resolve(unit));
+      mockRepository.update.mockImplementation((unit) => Promise.resolve(unit));
 
       await useCase.execute(
         CheckpointData.create(
@@ -146,7 +147,7 @@ describe('register checkpoint use case', () => {
         ),
       );
 
-      const savedUnit = mockRepository.save.mock.calls[0]![0];
+      const savedUnit = mockRepository.update.mock.calls[0]![0];
       const addedCheckpoint =
         savedUnit.checkpoints[savedUnit.checkpoints.length - 1];
       expect(addedCheckpoint).toBeDefined();
@@ -171,7 +172,7 @@ describe('register checkpoint use case', () => {
         InvalidStateTransitionError,
       );
 
-      expect(mockRepository.save).not.toHaveBeenCalled();
+      expect(mockRepository.update).not.toHaveBeenCalled();
     });
 
     it('should handle repository findByTrackingId errors', async () => {
@@ -191,7 +192,7 @@ describe('register checkpoint use case', () => {
         'Database connection failed',
       );
 
-      expect(mockRepository.save).not.toHaveBeenCalled();
+      expect(mockRepository.update).not.toHaveBeenCalled();
     });
 
     it('should handle repository save errors', async () => {
@@ -200,7 +201,9 @@ describe('register checkpoint use case', () => {
 
       mockCachePort.getUnitExists.mockResolvedValue(null);
       mockRepository.findByTrackingId.mockResolvedValue(existingUnit);
-      mockRepository.save.mockRejectedValue(new Error('Database write failed'));
+      mockRepository.update.mockRejectedValue(
+        new Error('Database write failed'),
+      );
 
       const checkpointData = CheckpointData.create(
         trackingId,
@@ -221,7 +224,7 @@ describe('register checkpoint use case', () => {
 
       mockCachePort.getUnitExists.mockResolvedValue(null);
       mockRepository.findByTrackingId.mockResolvedValue(existingUnit);
-      mockRepository.save.mockImplementation((unit) => Promise.resolve(unit));
+      mockRepository.update.mockImplementation((unit) => Promise.resolve(unit));
 
       await useCase.execute(
         CheckpointData.create(
@@ -232,7 +235,7 @@ describe('register checkpoint use case', () => {
         ),
       );
 
-      const savedUnit = mockRepository.save.mock.calls[0]![0];
+      const savedUnit = mockRepository.update.mock.calls[0]![0];
       const addedCheckpoint =
         savedUnit.checkpoints[savedUnit.checkpoints.length - 1];
       expect(addedCheckpoint).toBeDefined();
@@ -248,7 +251,7 @@ describe('register checkpoint use case', () => {
       mockRepository.findByTrackingId.mockImplementation(() =>
         Promise.resolve(currentUnit),
       );
-      mockRepository.save.mockImplementation((unit: Unit) => {
+      mockRepository.update.mockImplementation((unit: Unit) => {
         currentUnit = unit;
         return Promise.resolve(unit);
       });
@@ -276,7 +279,7 @@ describe('register checkpoint use case', () => {
         );
       }
 
-      expect(mockRepository.save).toHaveBeenCalledTimes(3);
+      expect(mockRepository.update).toHaveBeenCalledTimes(3);
     });
 
     it('should handle complete delivery flow', async () => {
@@ -287,7 +290,7 @@ describe('register checkpoint use case', () => {
       mockRepository.findByTrackingId.mockImplementation(() =>
         Promise.resolve(currentUnit),
       );
-      mockRepository.save.mockImplementation((unit: Unit) => {
+      mockRepository.update.mockImplementation((unit: Unit) => {
         currentUnit = unit;
         return Promise.resolve(unit);
       });
@@ -367,7 +370,7 @@ describe('register checkpoint use case', () => {
       mockRepository.findByTrackingId.mockImplementation(() =>
         Promise.resolve(currentUnit),
       );
-      mockRepository.save.mockImplementation((unit: Unit) => {
+      mockRepository.update.mockImplementation((unit: Unit) => {
         currentUnit = unit;
         return Promise.resolve(unit);
       });

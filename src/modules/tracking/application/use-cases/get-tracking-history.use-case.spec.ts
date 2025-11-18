@@ -16,8 +16,9 @@ describe('GetTrackingHistoryUseCase', () => {
   beforeEach(() => {
     mockRepository = {
       findByTrackingId: jest.fn(),
-      save: jest.fn(),
       findByState: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
     } as jest.Mocked<IUnitRepository>;
 
     useCase = new GetTrackingHistoryUseCase(mockRepository);

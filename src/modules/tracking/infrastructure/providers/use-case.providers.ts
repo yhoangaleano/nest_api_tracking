@@ -21,10 +21,13 @@ import {
 export const USE_CASE_PROVIDERS: Provider[] = [
   {
     provide: CREATE_UNIT_USE_CASE_TOKEN,
-    useFactory: (unitRepository: IUnitRepository) => {
-      return new CreateUnitUseCase(unitRepository);
+    useFactory: (
+      unitRepository: IUnitRepository,
+      cachePort: IUnitCachePort,
+    ) => {
+      return new CreateUnitUseCase(unitRepository, cachePort);
     },
-    inject: [UNIT_REPOSITORY_TOKEN_CONSTANT],
+    inject: [UNIT_REPOSITORY_TOKEN_CONSTANT, UNIT_CACHE_PORT_TOKEN],
   },
   {
     provide: GET_TRACKING_HISTORY_USE_CASE_TOKEN,
