@@ -5,7 +5,7 @@ import {
   OnModuleDestroy,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { createClient, RedisClientType } from 'redis';
+import { createClient, RedisClientOptions, RedisClientType } from 'redis';
 
 import { IUnitCachePort } from '../../domain/ports/cache';
 
@@ -24,8 +24,22 @@ export class RedisUnitCacheAdapter
 
   async onModuleInit(): Promise<void> {
     const url = this.configService.get<string>('redis.url');
+    const isProduction =
+      this.configService.get<string>('nodeEnv') === 'production';
 
-    this.client = createClient({ url });
+    const redisOptions: RedisClientOptions = {
+      url,
+    };
+
+    if (isProduction) {
+      redisOptions.socket = {
+        tls: true,
+        rejectUnauthorized: false,
+        connectTimeout: 10000,
+      };
+    }
+
+    this.client = createClient(redisOptions as any);
 
     this.client.on('error', (err) => {
       this.logger.error('Redis Client Error', err);
