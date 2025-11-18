@@ -28,17 +28,15 @@ import { AppService } from './app.service';
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         type: 'postgres',
-        host: configService.get<string>('postgres.host'),
-        port: configService.get<number>('postgres.port'),
-        username: configService.get<string>('postgres.username'),
-        password: configService.get<string>('postgres.password'),
-        database: configService.get<string>('postgres.database'),
+        url: configService.get<string>('postgres.url'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
+        ssl:
+          configService.get<string>('nodeEnv') === 'production'
+            ? { rejectUnauthorized: false }
+            : false,
+        autoLoadEntities: true,
         synchronize: configService.get<boolean>('postgres.synchronize'),
         logging: configService.get<boolean>('postgres.logging'),
-        ssl: configService.get<boolean>('postgres.ssl')
-          ? false
-          : { rejectUnauthorized: false },
       }),
     }),
     CoreModule,

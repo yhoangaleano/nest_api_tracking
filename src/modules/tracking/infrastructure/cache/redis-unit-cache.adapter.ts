@@ -23,17 +23,9 @@ export class RedisUnitCacheAdapter
   }
 
   async onModuleInit(): Promise<void> {
-    const host = this.configService.get<string>('redis.host', 'localhost');
-    const port = this.configService.get<number>('redis.port', 6379);
-    const password = this.configService.get<string>('redis.password');
+    const url = this.configService.get<string>('redis.url');
 
-    this.client = createClient({
-      socket: {
-        host,
-        port,
-      },
-      password: password || undefined,
-    });
+    this.client = createClient({ url });
 
     this.client.on('error', (err) => {
       this.logger.error('Redis Client Error', err);

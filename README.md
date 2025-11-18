@@ -37,51 +37,31 @@ npm install
 
 ### 3. Configurar variables de entorno
 
+Copia el archivo de ejemplo y ajústalo para tu entorno.
+
 ```bash
 cp .env.example .env
 ```
 
-Edita el archivo `.env` con las siguientes variables:
+Edita el archivo `.env` con las URLs de conexión a tus servicios.
 
 ```ini
-# Application
-NODE_ENV=development
-PORT=3000
+# Para desarrollo local con Docker, usa estas URLs:
+DATABASE_URL="postgres://tracking_user:tracking_pass@localhost:5432/tracking_db"
+REDIS_URL="redis://localhost:6379"
 
-# PostgreSQL
-POSTGRES_HOST=localhost
-POSTGRES_PORT=5432
-POSTGRES_USER=tracking_user
-POSTGRES_PASSWORD=tracking_pass
-POSTGRES_DATABASE=tracking_db
-POSTGRES_SYNC=false  # true solo en desarrollo
-
-# Redis
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_TTL=3600
-REDIS_PASSWORD=
-
-# JWT Configuration
-JWT_SECRET=your-super-secret-jwt-key-minimum-32-characters-long-here
-JWT_EXPIRATION=1h
-JWT_REFRESH_SECRET=your-super-secret-refresh-jwt-key-minimum-32-characters-long
-JWT_REFRESH_EXPIRATION=7d
-
-# Security
-ALLOWED_ORIGINS=http://localhost:3001
+# Para producción, usa las URLs de tus proveedores (ej. Neon, Upstash).
+# DATABASE_URL="postgres://user:pass@subdomain.region.aws.neon.tech/neondb?sslmode=require"
+# REDIS_URL="rediss://default:pass@host.upstash.io:port"
 ```
 
 ### 4. Levantar servicios con Docker
 
+Para desarrollo local:
+
 ```bash
 docker-compose up -d postgres redis
 ```
-
-Esto iniciará:
-
-- **PostgreSQL** en `localhost:5432`
-- **Redis** en `localhost:6379`
 
 ## Ejecución
 
@@ -91,32 +71,31 @@ Esto iniciará:
 npm run start:dev
 ```
 
-La API estará disponible en:
+La API estará disponible en `http://localhost:3000`.
 
-- **API base**: `http://localhost:3000/api/v1`
-- **Documentación Swagger**: `http://localhost:3000/api`
+### Despliegue en Producción (Tier Gratuito)
 
-### Producción con Docker
+Esta aplicación está optimizada para desplegarse en servicios con planes gratuitos como Render, Neon y Upstash.
 
-Para ejecutar todo el stack (API, PostgreSQL y Redis) con Docker:
+1.  **Base de datos (PostgreSQL en Neon):**
+    *   Crea una cuenta en [Neon.tech](https://neon.tech).
+    *   Crea un nuevo proyecto y obtén la **URL de conexión** (connection string) de tipo "Pooled connection".
+    *   Esta será tu variable de entorno `DATABASE_URL`.
 
-```bash
-# Construir y levantar servicios
-docker-compose up -d
+2.  **Caché (Redis en Upstash):**
+    *   Crea una cuenta en [Upstash.com](https://upstash.com).
+    *   Crea una nueva base de datos Redis. Asegúrate de que TLS (SSL) esté habilitado.
+    *   Copia la URL de conexión (empezará con `rediss://...`).
+    *   Esta será tu variable de entorno `REDIS_URL`.
 
-# Ver logs
-docker-compose logs -f api
-```
+3.  **Aplicación (NestJS en Render):**
+    *   Crea un nuevo "Web Service" en [Render.com](https://render.com) y conéctalo a tu repositorio de GitHub.
+    *   **Build Command:** `npm install && npm run build`
+    *   **Start Command:** `npm run start:prod`
+    *   En la sección "Environment", añade las variables de entorno `DATABASE_URL` y `REDIS_URL` que obtuviste de Neon y Upstash.
+    *   Asegúrate de configurar también las variables `JWT_SECRET`, `JWT_REFRESH_SECRET` y `NODE_ENV=production`.
 
-### Producción standalone
-
-```bash
-# Construir
-npm run build
-
-# Ejecutar
-npm run start:prod
-```
+El código está preparado para usar automáticamente conexiones SSL/TLS cuando `NODE_ENV` es `production`.
 
 ## Pruebas
 
